@@ -2,7 +2,7 @@
 
 Usage Topbar is a compact native macOS overlay that keeps Codex usage visible in the ChatGPT title bar without covering the task title or the right-side controls.
 
-![Usage Topbar preview](assets/usage-topbar-preview.png)
+![Usage Topbar preview](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.2.0/usage-topbar-preview.png)
 
 ## Features
 
