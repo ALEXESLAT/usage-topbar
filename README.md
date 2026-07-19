@@ -6,12 +6,13 @@ Usage Topbar is a compact native macOS overlay that keeps Codex usage visible in
 >
 > **AI 生成声明：** 本程序及其文档由人工智能编写。
 
-![Usage Topbar preview](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.2.0/usage-topbar-preview.png)
+![Usage Topbar preview](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.2.1/usage-topbar-preview.png)
 
 ## Features
 
 - Live remaining usage: reads the authenticated Codex rate-limit state every 30 seconds and displays the most constrained available window.
-- Compact progress display: combines a color-coded progress bar, remaining percentage, window duration, points balance, and next reset time in one short bar.
+- Accurate reset countdown: the leading day count shows the days remaining until the limiting usage window resets.
+- Compact progress display: combines a color-coded progress bar, remaining percentage, reset countdown, points balance, and precise next reset time in one short bar.
 - Liquid-glass appearance: uses the native macOS glass effect where available, with a polished visual-effect fallback on earlier supported systems.
 - Adaptive readability: samples only the average brightness of a tiny 12 x 12 px title-bar region and automatically switches between dark and light text.
 - Smart positioning: follows the main ChatGPT window, stays in the title bar, and reserves space for the task title and optional right sidebar.
@@ -20,7 +21,7 @@ Usage Topbar is a compact native macOS overlay that keeps Codex usage visible in
 
 ## 功能概览
 
-Usage Topbar 是一款原生 macOS Codex 用量浮层。它会在 ChatGPT 顶栏中显示剩余百分比、周期、points 和重置时间，并通过液态玻璃、自适应明暗字体及智能位置避让，在保持信息可读的同时不遮挡标题和右侧按钮。
+Usage Topbar 是一款原生 macOS Codex 用量浮层。它会在 ChatGPT 顶栏中显示剩余百分比、距离限制窗口重置的剩余天数、points 和精确重置时间，并通过液态玻璃、自适应明暗字体及智能位置避让，在保持信息可读的同时不遮挡标题和右侧按钮。
 
 ## Requirements
 
@@ -30,7 +31,7 @@ Usage Topbar 是一款原生 macOS Codex 用量浮层。它会在 ChatGPT 顶栏
 
 ## Install the macOS app
 
-1. Download `UsageTopbar-0.2.0-macOS-arm64.zip` from the GitHub release.
+1. Download `UsageTopbar-0.2.1-macOS-arm64.zip` from the GitHub release.
 2. Unzip it and move `UsageTopbar.app` to Applications.
 3. Open the app and review the privacy disclosure before starting live mode.
 
@@ -64,4 +65,4 @@ No third party receives window geometry or color samples. OpenAI receives the au
 
 ## Version
 
-Current release: `0.2.0`
+Current release: `0.2.1`
