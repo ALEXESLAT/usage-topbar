@@ -6,7 +6,7 @@ Usage Topbar is a compact native macOS overlay that keeps Codex usage visible in
 >
 > **AI 生成声明：** 本程序及其文档由人工智能编写。
 
-![Usage Topbar preview](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.2.1/usage-topbar-preview.png)
+![Usage Topbar preview](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.2.0/usage-topbar-preview.png)
 
 ## Features
 
