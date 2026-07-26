@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="116" viewBox="0 0 720 116">
+  <defs>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4b4b4d" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#070708" stop-opacity="0.90"/>
+    </linearGradient>
+  </defs>
+  <path d="M1 115V35Q1 1 35 1H624Q675 1 719 115Z"
+        fill="url(#glass)" stroke="#ffffff" stroke-opacity="0.62" stroke-width="2"/>
+  <rect x="32" y="45" width="192" height="14" rx="7" fill="#ffffff" fill-opacity="0.20"/>
+  <rect x="32" y="45" width="131" height="14" rx="7" fill="#34c759"/>
+  <text x="246" y="64" fill="#ffffff"
+        font-family="SF Pro Rounded, system-ui, sans-serif" font-size="30" font-weight="600">68%</text>
+  <text x="351" y="45" fill="#ffffff" fill-opacity="0.80"
+        font-family="SF Pro Rounded, system-ui, sans-serif" font-size="19" font-weight="600">1 day · 120 points</text>
+  <text x="351" y="76" fill="#ffffff" fill-opacity="0.80"
+        font-family="SF Pro Rounded, system-ui, sans-serif" font-size="19" font-weight="600">◷ reset 3h</text>
+  <line x1="1" y1="115" x2="660" y2="115" stroke="#ffffff" stroke-opacity="0.28"/>
+</svg>
