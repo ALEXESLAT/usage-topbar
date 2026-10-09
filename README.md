@@ -11,8 +11,8 @@ Usage Topbar is a compact native macOS edge tab that keeps Codex usage visible i
 ## Features
 
 - Live remaining usage: reads the authenticated Codex rate-limit state every 30 seconds and displays the most constrained available window.
-- GPT connectivity indicator: combines event-driven local network-path changes, the existing 30-second OpenAI-backed usage request, and a lightweight TLS handshake to `chatgpt.com:443` every five seconds on external power or fifteen seconds on battery/Low Power Mode. The handshake has a two-second timeout and sends no HTTP body, credentials, or model request.
-- Low-overhead system throughput: reads cumulative byte counters from active external network interfaces and shows compact `NET` download/upload rates. Sampling adapts from two seconds on external power to five seconds on battery or in Low Power Mode, without inspecting destinations or traffic contents.
+- Codex connectivity indicator: green means the authenticated Codex rate-limit request succeeded, yellow means it is checking, and red means that request failed or the local network path is unavailable. Generic internet reachability does not override this state.
+- Low-overhead system throughput: reads cumulative byte counters from active external network interfaces and shows compact download/upload rates beneath the separate `CODEX` status. Sampling adapts from two seconds on external power to five seconds on battery or in Low Power Mode, without inspecting destinations or traffic contents.
 - Compact progress display: combines a color-coded progress bar, remaining percentage, window duration, points balance, and next reset time in a two-line layout that does not truncate the reset countdown.
 - SwiftUI liquid-glass appearance: uses SwiftUI's official `glassEffect(.regular)` on macOS 26 and a SwiftUI material fallback on earlier supported systems.
 - Adaptive readability: samples only the average brightness of a tiny 12 x 12 px title-bar region and automatically switches between dark and light text.
@@ -27,14 +27,14 @@ Usage Topbar 是一款原生 macOS Codex 用量浮层。它吸附在 Codex 窗�
 
 ## Requirements
 
-- Apple Silicon Mac
+- Apple Silicon or Intel Mac (universal DMG; the ZIP is Apple Silicon only)
 - macOS 13 or later
 - ChatGPT/Codex desktop environment with an authenticated Codex app-server
 
 ## Install the macOS app
 
-1. Download `UsageTopbar-0.2.5-macOS-arm64.zip` from the release package.
-2. Unzip it and move `UsageTopbar.app` to Applications.
+1. Download `UsageTopbar-0.2.6-macOS-universal.dmg` from the release package.
+2. Open it and drag `UsageTopbar.app` to Applications.
 3. Open the app and review the privacy disclosure before starting live mode.
 
 The app is ad-hoc signed and not notarized. macOS may require you to approve the first launch from System Settings.
@@ -64,10 +64,10 @@ Live start intentionally requires a per-launch privacy confirmation.
 
 ## Data and privacy
 
-The app requests Codex rate-limit percentages, window durations, reset timestamps, and points balance from the local Codex app-server. It confirms OpenAI reachability with a bodyless, credential-free TLS handshake to `chatgpt.com:443` every five seconds on external power or every fifteen seconds on battery/Low Power Mode. It locally reads cumulative byte counters from active external network interfaces every two seconds on external power or every five seconds on battery/Low Power Mode to display whole-Mac throughput. It enumerates ChatGPT window geometry for positioning and, only when Screen Recording access is already available, calculates the average luminance of a 12 x 12 px title-bar sample. It reads no traffic contents, performs no OCR, and does not automatically request Screen Recording permission.
+The app requests Codex rate-limit percentages, window durations, reset timestamps, and points balance from the local Codex app-server every 30 seconds. The result of that authenticated request drives the Codex connection indicator. It locally reads cumulative byte counters from active external network interfaces every two seconds on external power or every five seconds on battery/Low Power Mode to display whole-Mac throughput. It enumerates ChatGPT window geometry for positioning and, only when Screen Recording access is already available, calculates the average luminance of a 12 x 12 px title-bar sample. It reads no traffic contents, performs no OCR, and does not automatically request Screen Recording permission.
 
-No third party receives interface statistics, window geometry, or color samples. OpenAI receives the authenticated rate-limit read request plus the source IP, connection time, and standard TLS metadata from reachability handshakes. The app does not persist usage data, probe results, network statistics, credentials, screenshots, or sampled colors.
+No third party receives interface statistics, window geometry, or color samples. OpenAI receives the authenticated rate-limit read request and its normal connection metadata. The app does not persist usage data, connection results, network statistics, credentials, screenshots, or sampled colors.
 
 ## Version
 
-Current release: `0.2.5` (build 16)
+Current release: `0.2.6` (build 17)

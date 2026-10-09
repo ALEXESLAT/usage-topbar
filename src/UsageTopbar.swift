@@ -34,9 +34,9 @@ enum GPTConnectionState: Equatable {
 
     var label: String {
         switch self {
-        case .checking: return "正在检查 GPT 网络连接"
-        case .connected: return "GPT 网络已连接"
-        case .disconnected: return "GPT 网络不可用"
+        case .checking: return "正在检查 Codex 服务连接"
+        case .connected: return "Codex 服务已连接"
+        case .disconnected: return "Codex 服务不可用"
         }
     }
 }
@@ -152,8 +152,8 @@ struct UsageEdgeTabView: View {
     fileprivate var statusAccessory: some View {
         VStack(alignment: .trailing, spacing: 2) {
             HStack(spacing: 3) {
-                Text("NET")
-                    .font(.system(size: 7.5, weight: .bold, design: .rounded))
+                Text("CODEX")
+                    .font(.system(size: 6.5, weight: .bold, design: .rounded))
                 Circle()
                     .fill(model.connectionState.color)
                     .frame(width: 9, height: 9)
@@ -169,9 +169,9 @@ struct UsageEdgeTabView: View {
         .font(.system(size: 8.5, weight: .semibold, design: .rounded))
         .monospacedDigit()
         .foregroundStyle(primaryColor.opacity(0.92))
-        .frame(width: 38, alignment: .trailing)
+        .frame(width: 42, alignment: .trailing)
         .padding(.top, 9)
-        .padding(.trailing, 12)
+        .padding(.trailing, 10)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
             "\(model.connectionState.label)。\(throughputAccessibilityText)"
@@ -195,7 +195,7 @@ struct UsageEdgeTabView: View {
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(primaryColor)
-                .frame(width: 47, alignment: .leading)
+                .frame(width: 54, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(model.snapshot.detail)
@@ -226,7 +226,7 @@ struct UsageEdgeTabView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.leading, 14)
-        .padding(.trailing, 42)
+        .padding(.trailing, 44)
         .padding(.top, 6)
         .padding(.bottom, 10)
         .frame(width: 328, height: 52)
@@ -313,25 +313,32 @@ final class RateLimitClient {
     private var requestID = 2
     private var pollTimer: Timer?
     private var responseTimeout: Timer?
+    private var restartTimer: Timer?
+    private var restartAttempt = 0
+    private var isStopped = false
     private let pathMonitor = NWPathMonitor()
     private let pathMonitorQueue = DispatchQueue(label: "local.alex.usage-topbar.network")
-    private let probeQueue = DispatchQueue(label: "local.alex.usage-topbar.openai-probe")
     private var pathMonitorStarted = false
     private var hasConnectedSnapshot = false
     private var pathIsSatisfied = false
-    private var probeTimer: Timer?
-    private var probeTimeout: Timer?
-    private var probeConnection: NWConnection?
-    private var probeID: UUID?
 
     func start() {
+        isStopped = false
         startPathMonitoring()
+        launchProcess()
+    }
+
+    private func launchProcess() {
+        guard !isStopped, process?.isRunning != true else { return }
+        restartTimer?.invalidate()
+        restartTimer = nil
         guard let executable = findCodexBinary() else {
-            onConnectionState?(.disconnected)
+            markDisconnected()
             onStatus?("Codex not found")
             return
         }
 
+        buffer.removeAll(keepingCapacity: true)
         let child = Process()
         let stdinPipe = Pipe()
         let stdoutPipe = Pipe()
@@ -355,40 +362,43 @@ final class RateLimitClient {
             try child.run()
             process = child
             input = stdinPipe.fileHandleForWriting
-            child.terminationHandler = { [weak self] _ in
+            child.terminationHandler = { [weak self, weak child] _ in
                 DispatchQueue.main.async {
-                    self?.responseTimeout?.invalidate()
-                    self?.responseTimeout = nil
-                    self?.onConnectionState?(.disconnected)
-                    self?.onStatus?("GPT network unavailable")
+                    guard let self, let child, self.process === child else { return }
+                    self.pollTimer?.invalidate()
+                    self.pollTimer = nil
+                    self.responseTimeout?.invalidate()
+                    self.responseTimeout = nil
+                    self.process = nil
+                    self.input = nil
+                    self.markDisconnected()
+                    self.onStatus?("Codex service unavailable · retrying")
+                    self.scheduleRestart()
                 }
             }
             send([
                 "method": "initialize",
                 "id": 1,
                 "params": [
-                    "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.2.5"],
+                    "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.2.6"],
                     "capabilities": ["experimentalApi": true, "requestAttestation": false]
                 ]
             ])
         } catch {
-            onConnectionState?(.disconnected)
-            onStatus?("Start failed")
+            markDisconnected()
+            onStatus?("Start failed · retrying")
+            scheduleRestart()
         }
     }
 
     func stop() {
+        isStopped = true
+        restartTimer?.invalidate()
+        restartTimer = nil
         pollTimer?.invalidate()
         pollTimer = nil
         responseTimeout?.invalidate()
         responseTimeout = nil
-        probeTimer?.invalidate()
-        probeTimer = nil
-        probeTimeout?.invalidate()
-        probeTimeout = nil
-        probeID = nil
-        probeConnection?.cancel()
-        probeConnection = nil
         if pathMonitorStarted {
             pathMonitor.cancel()
             pathMonitorStarted = false
@@ -400,7 +410,8 @@ final class RateLimitClient {
 
     func refresh() {
         guard process?.isRunning == true else {
-            onConnectionState?(.disconnected)
+            markDisconnected()
+            scheduleRestart(after: 0.1)
             return
         }
         let id = requestID
@@ -410,6 +421,8 @@ final class RateLimitClient {
     }
 
     private func beginPolling() {
+        restartAttempt = 0
+        pollTimer?.invalidate()
         refresh()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             self?.refresh()
@@ -426,17 +439,12 @@ final class RateLimitClient {
                     let justReconnected = !self.pathIsSatisfied
                     self.pathIsSatisfied = true
                     self.onConnectionState?(self.hasConnectedSnapshot ? .connected : .checking)
-                    if self.process?.isRunning == true && !self.hasConnectedSnapshot {
+                    if self.process?.isRunning == true &&
+                        (!self.hasConnectedSnapshot || justReconnected) {
                         self.refresh()
-                    }
-                    if justReconnected {
-                        self.scheduleProbe(after: 0.1)
                     }
                 } else {
                     self.pathIsSatisfied = false
-                    self.probeTimer?.invalidate()
-                    self.probeTimer = nil
-                    self.cancelActiveProbe()
                     self.markDisconnected()
                 }
             }
@@ -444,90 +452,11 @@ final class RateLimitClient {
         pathMonitor.start(queue: pathMonitorQueue)
     }
 
-    private func scheduleProbe(after delay: TimeInterval? = nil) {
-        guard pathIsSatisfied else { return }
-        probeTimer?.invalidate()
-        probeTimer = Timer.scheduledTimer(
-            withTimeInterval: delay ?? preferredProbeInterval(),
-            repeats: false
-        ) { [weak self] _ in
-            self?.probeTimer = nil
-            self?.runOpenAIProbe()
-        }
-    }
-
-    private func runOpenAIProbe() {
-        guard pathIsSatisfied, probeConnection == nil else { return }
-        let id = UUID()
-        probeID = id
-        let tls = NWProtocolTLS.Options()
-        let tcp = NWProtocolTCP.Options()
-        tcp.connectionTimeout = 2
-        let connection = NWConnection(
-            host: NWEndpoint.Host("chatgpt.com"),
-            port: NWEndpoint.Port(rawValue: 443)!,
-            using: NWParameters(tls: tls, tcp: tcp)
-        )
-        probeConnection = connection
-        connection.stateUpdateHandler = { [weak self] state in
-            DispatchQueue.main.async {
-                guard let self, self.probeID == id else { return }
-                switch state {
-                case .ready:
-                    self.finishProbe(id: id, succeeded: true)
-                case .failed:
-                    self.finishProbe(id: id, succeeded: false)
-                default:
-                    break
-                }
-            }
-        }
-        probeTimeout?.invalidate()
-        probeTimeout = Timer.scheduledTimer(withTimeInterval: 2, repeats: false) { [weak self] _ in
-            self?.finishProbe(id: id, succeeded: false)
-        }
-        connection.start(queue: probeQueue)
-    }
-
-    private func finishProbe(id: UUID, succeeded: Bool) {
-        guard probeID == id else { return }
-        probeTimeout?.invalidate()
-        probeTimeout = nil
-        probeID = nil
-        probeConnection?.stateUpdateHandler = nil
-        probeConnection?.cancel()
-        probeConnection = nil
-        if succeeded {
-            onConnectionState?(.connected)
-        } else {
-            onConnectionState?(.disconnected)
-        }
-        scheduleProbe()
-    }
-
-    private func cancelActiveProbe() {
-        probeTimeout?.invalidate()
-        probeTimeout = nil
-        probeID = nil
-        probeConnection?.stateUpdateHandler = nil
-        probeConnection?.cancel()
-        probeConnection = nil
-    }
-
-    private func preferredProbeInterval() -> TimeInterval {
-        if ProcessInfo.processInfo.isLowPowerModeEnabled { return 15 }
-        guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
-              let source = IOPSGetProvidingPowerSourceType(snapshot)?.takeUnretainedValue()
-                as? String else { return 5 }
-        return source == (kIOPSBatteryPowerValue as String) ? 15 : 5
-    }
-
     private func armResponseTimeout() {
         responseTimeout?.invalidate()
         responseTimeout = Timer.scheduledTimer(withTimeInterval: 10, repeats: false) { [weak self] _ in
-            self?.responseTimeout = nil
-            self?.onConnectionState?(.disconnected)
-            self?.onStatus?("GPT network unavailable")
+            self?.markDisconnected()
+            self?.onStatus?("Codex service unavailable")
         }
     }
 
@@ -535,7 +464,20 @@ final class RateLimitClient {
         responseTimeout?.invalidate()
         responseTimeout = nil
         hasConnectedSnapshot = true
+        restartAttempt = 0
         onConnectionState?(.connected)
+    }
+
+    private func scheduleRestart(after requestedDelay: TimeInterval? = nil) {
+        guard !isStopped, restartTimer == nil else { return }
+        let delays: [TimeInterval] = [1, 2, 5, 10, 30]
+        let delay = requestedDelay ?? delays[min(restartAttempt, delays.count - 1)]
+        restartAttempt += 1
+        restartTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            guard let self else { return }
+            self.restartTimer = nil
+            self.launchProcess()
+        }
     }
 
     private func markDisconnected() {
@@ -580,7 +522,7 @@ final class RateLimitClient {
 
         if object["error"] != nil {
             markDisconnected()
-            onStatus?("GPT network unavailable")
+            onStatus?("Codex service unavailable")
         }
     }
 
@@ -692,6 +634,7 @@ final class RateLimitClient {
         if let override = ProcessInfo.processInfo.environment["CODEX_BINARY"],
            FileManager.default.isExecutableFile(atPath: override) { return override }
         let candidates = [
+            "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex",
             "/Applications/ChatGPT.app/Contents/Resources/codex",
             "/opt/homebrew/bin/codex",
             "/usr/local/bin/codex"
@@ -855,6 +798,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private struct TrackedWindow {
         let bounds: CGRect
         let id: CGWindowID
+        let orderIndex: Int
+        let overlayOrderIndex: Int?
     }
 
     private let overlayWidth: CGFloat = 328
@@ -893,11 +838,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.icon = NSApp.applicationIconImage
-        alert.messageText = "允许显示实时 Codex 剩余用量？"
-        alert.informativeText = "数据：用量百分比、重置时间、积分余额、Mac 活跃外部网卡的累计上下行字节数、ChatGPT 窗口位置、顶栏下方 12×12 px 区域的平均明暗值，以及连接 OpenAI 时产生的公网 IP、连接时间和标准 TLS 元数据。\n用途：绘制、定位浮层，显示整机实时网络速率、快速判断 GPT 网络连接，并自动选择高对比度字体。\n操作：每 30 秒通过本地 Codex app-server 读取 account/rateLimits；对 chatgpt.com:443 做不含 HTTP 正文或凭证的 TLS 握手（接电每 5 秒，电池或低电量模式每 15 秒，2 秒超时）；本机读取网卡累计字节计数并计算增量（接电每 2 秒，电池或低电量模式每 5 秒）；本机枚举窗口几何信息并定期采样极小颜色区域，不读取网络内容或文字。\n接收方：OpenAI 接收已登录账户的用量读取请求和 TLS 握手元数据；没有第三方接收网卡统计、颜色或窗口数据，它们只留在本机。\n\n本次启动不会保存用量快照、连通测试、网卡统计、颜色样本或截图。"
-        alert.addButton(withTitle: "同意并启动")
+        alert.messageText = "启动实时 Codex 用量监控？"
+        alert.informativeText = "数据：Codex 用量、重置时间、积分、整机网速、窗口位置与 12×12 px 明暗样本。\n用途与操作：本次运行读取并显示这些数据、判断 Codex 连接和适配文字颜色，不保存内容。\n接收方：仅用量请求发送给 OpenAI；网速、窗口和明暗数据留在本机。"
+        alert.addButton(withTitle: "启动")
         alert.addButton(withTitle: "取消")
-        if alert.runModal() == .alertFirstButtonReturn { startLive() } else { NSApp.terminate(nil) }
+        alert.addButton(withTitle: "查看详情")
+        alert.buttons[1].keyEquivalent = "\u{1b}"
+
+        while true {
+            switch alert.runModal() {
+            case .alertFirstButtonReturn:
+                startLive()
+                return
+            case .alertSecondButtonReturn:
+                NSApp.terminate(nil)
+                return
+            default:
+                showConsentDetails()
+            }
+        }
+    }
+
+    private func showConsentDetails() {
+        let detailAlert = NSAlert()
+        detailAlert.icon = NSApp.applicationIconImage
+        detailAlert.messageText = "本次实时模式的数据说明"
+        detailAlert.informativeText = "数据：用量百分比、重置时间、积分余额、Mac 活跃外部网卡的累计上下行字节数、ChatGPT 窗口位置、顶栏下方 12×12 px 区域的平均明暗值，以及读取 Codex 用量时产生的公网 IP、连接时间和标准 TLS 元数据。\n用途：绘制、定位浮层，显示整机实时网络速率、确认 Codex 服务连接，并自动选择高对比度字体。\n操作：每 30 秒通过本地 Codex app-server 读取 account/rateLimits，并以该已认证请求的结果显示 Codex 连接状态；本机读取网卡累计字节计数并计算增量（接电每 2 秒，电池或低电量模式每 5 秒）；本机枚举窗口几何信息并定期采样极小颜色区域，不读取网络内容或文字。\n接收方：OpenAI 接收已登录账户的用量读取请求；没有第三方接收网卡统计、颜色或窗口数据，它们只留在本机。\n\n本次启动不会保存用量快照、连接状态、网卡统计、颜色样本或截图。"
+        detailAlert.addButton(withTitle: "返回")
+        detailAlert.runModal()
     }
 
     private func configureApplicationIcon() {
@@ -993,10 +961,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startPositionTracking() {
-        positionPanel()
+        synchronizePanelVisibility()
         positionTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            self?.positionPanel()
+            self?.synchronizePanelVisibility()
         }
+    }
+
+    private func synchronizePanelVisibility() {
+        updatePanelVisibility(for: NSWorkspace.shared.frontmostApplication)
     }
 
     private func startActivationTracking() {
@@ -1014,12 +986,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updatePanelVisibility(for application: NSRunningApplication?) {
-        guard application?.bundleIdentifier != Bundle.main.bundleIdentifier else { return }
-        guard !userHidden, isCodexApplication(application) else {
+        guard let application,
+              !userHidden,
+              isCodexApplication(application) else {
             panel.orderOut(nil)
             return
         }
-        showPanelBehindCodex()
+        showPanelBehindCodex(for: application)
     }
 
     private func isCodexApplication(_ application: NSRunningApplication?) -> Bool {
@@ -1034,14 +1007,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func apply(_ snapshot: UsageSnapshot) {
         overlayModel.snapshot = snapshot
         statusItem.button?.title = "∞ \(Int(snapshot.remaining.rounded()))%"
-    }
-
-    private func positionPanel() {
-        guard let window = chatGPTWindow() else {
-            positionFallback()
-            return
-        }
-        positionPanel(for: window)
     }
 
     private func positionPanel(for window: TrackedWindow) {
@@ -1067,13 +1032,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func showPanelBehindCodex() {
-        guard let window = chatGPTWindow() else {
+    private func showPanelBehindCodex(for application: NSRunningApplication) {
+        guard let window = chatGPTWindow(for: application) else {
             panel.orderOut(nil)
             return
         }
         positionPanel(for: window)
-        panel.order(.below, relativeTo: Int(window.id))
+        let overlayIsBehindCodex = window.overlayOrderIndex.map { $0 > window.orderIndex } ?? false
+        if !panel.isVisible || !overlayIsBehindCodex {
+            panel.order(.below, relativeTo: Int(window.id))
+        }
     }
 
     private func positionFallback() {
@@ -1084,17 +1052,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ))
     }
 
-    private func chatGPTWindow() -> TrackedWindow? {
+    private func chatGPTWindow(for application: NSRunningApplication) -> TrackedWindow? {
+        let processIdentifier = application.processIdentifier
         guard let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
-        return info.compactMap { item -> TrackedWindow? in
+        let panelWindowNumber = panel.windowNumber
+        let overlayOrderIndex = info.firstIndex { item in
+            (item[kCGWindowNumber as String] as? NSNumber)?.intValue == panelWindowNumber
+        }
+        return info.enumerated().compactMap { orderIndex, item -> TrackedWindow? in
             guard let owner = item[kCGWindowOwnerName as String] as? String,
                   ["ChatGPT", "Codex"].contains(owner),
+                  let ownerPID = item[kCGWindowOwnerPID as String] as? NSNumber,
+                  ownerPID.int32Value == processIdentifier,
                   (item[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
                   let windowNumber = item[kCGWindowNumber as String] as? NSNumber,
                   let dictionary = item[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: dictionary),
                   rect.width > 500, rect.height > 300 else { return nil }
-            return TrackedWindow(bounds: rect, id: CGWindowID(windowNumber.uint32Value))
+            return TrackedWindow(
+                bounds: rect,
+                id: CGWindowID(windowNumber.uint32Value),
+                orderIndex: orderIndex,
+                overlayOrderIndex: overlayOrderIndex
+            )
         }.max { $0.bounds.width * $0.bounds.height < $1.bounds.width * $1.bounds.height }
     }
 

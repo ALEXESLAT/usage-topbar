@@ -1,7 +1,7 @@
 {
   "name": "usage-topbar",
-  "version": "0.2.5",
-  "description": "A local Codex plugin with a native macOS overlay for rate limits, GPT connectivity, and live throughput.",
+  "version": "0.2.6",
+  "description": "A local Codex plugin with a native macOS overlay for rate limits, Codex connectivity, and live throughput.",
   "author": {
     "name": "Alex"
   },
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Usage Topbar",
     "shortDescription": "Show Codex usage, connectivity, and throughput.",
-    "longDescription": "Usage Topbar adds a privacy-gated SwiftUI liquid-glass edge tab that attaches above the Codex window's traffic-light controls and shows Codex rate-limit progress, GPT connectivity, live upload/download speed, reset timing, and points without covering the window.",
+    "longDescription": "Usage Topbar adds a privacy-gated SwiftUI liquid-glass edge tab that attaches above the Codex window's traffic-light controls and shows Codex rate-limit progress, Codex connectivity, live upload/download speed, reset timing, and points without covering the window.",
     "developerName": "Alex",
     "category": "Productivity",
     "capabilities": [

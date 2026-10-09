@@ -25,10 +25,16 @@ case "${1:-status}" in
     pkill -x UsageTopbar 2>/dev/null || true
     ;;
   status)
-    if pgrep -x UsageTopbar >/dev/null 2>&1; then
+    if STATUS_OUTPUT=$(pgrep -x UsageTopbar 2>&1); then
       echo "running"
     else
-      echo "stopped"
+      STATUS_CODE=$?
+      if [ "$STATUS_CODE" -eq 1 ]; then
+        echo "stopped"
+      else
+        echo "unknown: $STATUS_OUTPUT" >&2
+        exit "$STATUS_CODE"
+      fi
     fi
     ;;
   build)
