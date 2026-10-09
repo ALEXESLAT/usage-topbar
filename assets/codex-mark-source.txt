@@ -1,0 +1,9 @@
+Source: /Applications/ChatGPT.app/Contents/Resources/app.asar
+ASAR entry: webview/assets/codex-d905da579253.svg
+Bundle identifier: com.openai.codex
+Signing TeamIdentifier: 2DC432GLL2
+Retrieved locally: 2026-10-09
+SHA-256: a82453719b4ebdcc53eb7582063c1751f4fa5324ccdc1a45d4eaa9a96fa058d1
+Verified against the ASAR entry integrity hash. SVG preserved byte-for-byte.
+CodexMark embeds the original absolute SVG path in Swift (24 x 24 viewBox).
+Used only for the 18 x 18 pt menu bar template image; floating overlay stays GPTMark.

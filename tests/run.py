@@ -9,7 +9,7 @@ with tempfile.TemporaryDirectory(prefix='usage-topbar-tests-') as temp:
  work=Path(temp)
  declarations=source.read_text().split('if let index = CommandLine.arguments.firstIndex(of: "--render-preview")')[0]
  render_dir = Path(sys.argv[2]).resolve() if len(sys.argv)>2 and sys.argv[1]=='--render' else None
- test_source = 'RenderTests.swift' if render_dir else 'RegressionTests.swift'
+ test_source = 'RenderTests.swift' if render_dir else ('StartupTests.swift' if '--startup' in sys.argv else 'RegressionTests.swift')
  (work/'main.swift').write_text(declarations+'\n'+(root/'tests'/test_source).read_text())
  mock=(root/'tests/mock-server.py').read_text()
  for mode in ['recover','hang','stall','foreign','error','oversized']:

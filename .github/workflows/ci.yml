@@ -24,6 +24,8 @@ jobs:
           xcrun --show-sdk-version
       - name: Mock regressions
         run: python3 tests/run.py
+      - name: Startup regressions
+        run: python3 tests/run.py --startup
       - name: Build and verify
         env:
           USAGE_TOPBAR_APP_OUTPUT: ${{ runner.temp }}/UsageTopbar.app

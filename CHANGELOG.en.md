@@ -2,7 +2,15 @@
 
 **English** · [简体中文](CHANGELOG.md)
 
-The current public release is **[0.3.1 (19)](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.3.1)**. Historical platform support does not define current support.
+The current public release is **[0.4.0 (20)](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.4.0)**. Historical platform support does not define current support.
+
+## 0.4.0 (20) — 2026-10-09
+
+- Compact overlay with a centered percentage, pts aligned to its actual left edge, card details above throughput, and a Codex menu-bar mark.
+- Countdown follows the actual reset deadline; available reset-card count and earliest expiry use `Exp. MM/dd`, with `--` for unavailable details.
+- Initial reads and recovery animate digits and bar together from zero to the actual value over about 0.8 seconds with ease-out. Routine refreshes do not replay it; reduced motion is respected.
+- Monitoring starts directly within the disclosed scope, without a per-launch dialog. Optional launch at login defaults off for new users and preserves existing system registration.
+- Background and manually hidden tracking checks fall back to one second; foreground and automatic hiding retain 0.2-second checks with immediate event handling. Presentation deduplication and font measurement caching avoid repeated work.
 
 ## 0.3.1 (19) — 2026-10-09
 

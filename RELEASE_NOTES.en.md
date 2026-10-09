@@ -1,44 +1,30 @@
-# Usage Topbar 0.3.1
+# Usage Topbar 0.4.0
 
 **English** · [简体中文](RELEASE_NOTES.md)
 
-**0.3.1 (build 19) · Apple Silicon (arm64) · macOS 13+**
+**0.4.0 (build 20) · Apple Silicon (arm64) · macOS 13+**
 
-A liquid-glass-style native macOS companion that places Codex remaining usage, its window, reset countdown, points, and whole-Mac throughput above the window's upper-left edge. The 0.3 series focuses on usage semantics, connection recovery, and display placement. This release supports Apple Silicon only, not Intel Macs.
+- Compact overlay with a centered percentage, pts aligned to its actual left edge, card details above throughput, and a Codex menu-bar mark.
+- Countdown follows the actual reset deadline; available reset-card count and earliest expiry use `Exp. MM/dd`, with `--` for unavailable details.
+- Initial reads and recovery animate digits and bar together from zero to the actual value over about 0.8 seconds with ease-out. Routine refreshes do not replay it; reduced motion is respected.
+- Monitoring starts directly within the disclosed scope, without a per-launch dialog. Optional launch at login defaults off for new users and preserves existing system registration.
+- Background and manually hidden tracking checks fall back to one second; foreground and automatic hiding retain 0.2-second checks with immediate event handling. Presentation deduplication and font measurement caching avoid repeated work.
 
-## Download and install
+- [DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.dmg)
+- [ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.zip)
+- [Plugin / source](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/usage-topbar-plugin-0.4.0.zip)
+- [SHA-256](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/SHA256SUMS.txt)
 
-- [arm64 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.dmg): app, Applications shortcut, and installation instructions.
-- [arm64 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.zip): the same application in a ZIP archive.
-- [Plugin and source](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/usage-topbar-plugin-0.3.1.zip): management skill, source, and synthetic regression tests.
-- [SHA256SUMS.txt](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/SHA256SUMS.txt): download checksums.
+Quit the old version and move the app into `/Applications`. A signed-in Codex/ChatGPT installation with app-server is required. Opening starts the disclosed monitoring directly, without a per-launch dialog.
 
-Move `UsageTopbar.app` to `/Applications`; quit the old instance first when updating. The installed, signed-in Codex/ChatGPT environment must provide a usable app-server. Review and confirm the data disclosure before each live launch.
+**Ad-hoc signed, not notarized by Apple.** Apple Silicon only. Follow macOS per-app opening instructions; do not disable Gatekeeper.
 
-The app is **ad-hoc signed and not notarized by Apple**. macOS may block its first launch. Verify the source and follow per-app opening prompts; do not disable Gatekeeper or weaken global security settings.
+Validation: local optimized arm64 build; synthetic usage/cards/countdown/connection/layout regressions; startup, recovery animation and login-controller tests; light/dark and 1×/2× synthetic renders; packaged version, signature and checksums. Earlier installation tests of the same feature source covered ordinary repeated opening, exit cleanup and live startup; release installation version and process state are checked separately.
 
-[Complete usage guide](https://github.com/ALEXESLAT/usage-topbar/blob/main/docs/USAGE.en.md) · [Project overview](https://github.com/ALEXESLAT/usage-topbar/blob/main/README.en.md) · [Changelog](https://github.com/ALEXESLAT/usage-topbar/blob/main/CHANGELOG.en.md)
+Limits: reduced motion, disconnection, missing screen permission and login registration mainly use synthetic tests. No reboot/login cycle, older macOS, physical multi-display/notch combinations or long-term battery test. No whole-app energy-saving claim, reliable cross-process card-consumption detection, or real-card redemption.
 
-## Improvements
+Existing login reads OpenAI usage/cards. Whole-Mac throughput, window geometry and tiny brightness samples with existing permission stay local. Missing permission falls back without requesting access; no OCR or saved screenshots. Quitting stops requests and sampling.
 
-- **Clearer values:** unknown, offline, and failed reads show `--%`, not `0%`. Other models' buckets cannot replace Codex usage. Duration and countdown match the most constrained window.
-- **Reliable recovery:** initialization/read deadlines, retries after failures and process exits, matching response IDs, bounded response buffers, sleep suspension, and fresh reads after wake.
-- **Safer placement:** two-dimensional display positioning, scale and safe-area handling, narrower windows, and horizontal-edge constraints. When there is no space above Codex, the overlay hides and usage remains available in the menu bar.
-- **Better throughput accounting:** actual sampling intervals and per-interface baselines avoid spikes after interface changes, rollover, or sleep. These are whole-Mac rates, not Codex-only traffic.
-- **Familiar appearance:** native Liquid Glass on macOS 26+, SwiftUI material on earlier supported systems. Tiny-region luminance sampling requires macOS 14+ and existing permission; otherwise system appearance is used.
-
-## Validation and limits
-
-Checked on Apple Silicon / macOS 27.2:
-
-- Native arm64 build and regressions: 17 quota, 8 geometry, and 4 throughput assertions, plus 7 mock-service lifecycle scenarios.
-- Twelve light/dark, 1×/2×, full/zero/unknown UI renders.
-- Packaged version 0.3.1 (19), arm64-only architecture, macOS 13.0 deployment target, ad-hoc signature, and DMG checksum. Published asset SHA-256 digests matched the local files.
-
-**Older supported macOS installations, physical multi-monitor/notch combinations, and prolonged real-account monitoring have not been tested on devices.** Geometry simulation and successful compilation are not a guarantee for every Mac. See [GitHub Actions](https://github.com/ALEXESLAT/usage-topbar/actions/workflows/ci.yml) for subsequent repository checks; these are not retroactive CI validation of this release.
-
-Usage Topbar itself does not save usage snapshots, credentials, throughput statistics, or screenshots. OpenAI receives usage requests and normal connection metadata. See the usage guide for the full data scope.
-
-This update adds bilingual documentation and descriptions and brings the released source into `main`. Program logic, the `v0.3.1` tag, and binary assets retain their release-time contents. Documentation inside published packages is that original snapshot; current guides are in this repository.
+[Installation and privacy](docs/USAGE.en.md) · [Changelog](CHANGELOG.en.md)
 
 > The software and documentation were written by artificial intelligence.
