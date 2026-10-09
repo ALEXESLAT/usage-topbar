@@ -31,3 +31,7 @@ Use [Releases](https://github.com/ALEXESLAT/usage-topbar/releases) for official 
 Licensed under the [MIT License](LICENSE). Copyright © 2026 ALEXESLAT. Preserve the copyright and license notices when using, modifying, or distributing the software. Third-party content retains its original terms.
 
 [Usage guide](docs/USAGE.en.md) · [Home](README.en.md)
+
+## Unreleased updater development
+
+Builds now need Python 3 and HTTPS access to GitHub for pinned Sparkle 2.10.0. Set `USAGE_TOPBAR_DEPENDENCY_CACHE` to choose the cache. `python3 tests/run-updater.py` creates no keys. The app includes the upstream framework and external-component licenses. See [update development boundaries](docs/UPDATES.en.md).

@@ -3,32 +3,52 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>Usage Topbar</string>
+	<string>UsageTopbar HTTPS Test</string>
+	<key>CFBundleExecutable</key>
+	<string>UsageTopbar</string>
 	<key>CFBundleIconFile</key>
 	<string>UsageTopbar.icns</string>
 	<key>CFBundleIconName</key>
 	<string>UsageTopbar</string>
-  <key>CFBundleExecutable</key>
-  <string>UsageTopbar</string>
-  <key>CFBundleIdentifier</key>
-  <string>local.alex.usage-topbar</string>
-  <key>CFBundleInfoDictionaryVersion</key>
-  <string>6.0</string>
-  <key>CFBundleName</key>
-  <string>Usage Topbar</string>
-  <key>CFBundlePackageType</key>
-  <string>APPL</string>
-  <key>CFBundleShortVersionString</key>
-  <string>0.4.0</string>
+	<key>CFBundleIdentifier</key>
+	<string>local.alex.usage-topbar.https-test</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>UsageTopbar HTTPS Test</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.5.0-updater-test.1</string>
 	<key>CFBundleVersion</key>
-	<string>20</string>
-  <key>LSMinimumSystemVersion</key>
-  <string>13.0</string>
-  <key>LSUIElement</key>
-  <true/>
+	<string>22</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>LSUIElement</key>
+	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>Usage Topbar samples a tiny title-bar color area locally to choose readable text contrast.</string>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUEnableJavaScript</key>
+	<false/>
+	<key>SUEnableSystemProfiling</key>
+	<false/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/ALEXESLAT/usage-topbar/updater-https-validation/updates/appcast.xml</string>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUShowReleaseNotes</key>
+	<false/>
+	<key>SUSignedFeedFailureExpirationInterval</key>
+	<integer>0</integer>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 </dict>
 </plist>

@@ -1,3 +1,5 @@
+> **Isolated HTTPS updater test branch. Stable remains v0.4.0.** Read [test scope and limitations](HTTPS-VALIDATION.md).
+
 # Usage Topbar
 
 **English** · [简体中文](README.md)
@@ -44,3 +46,7 @@ Usage is read from OpenAI through the local Codex app-server. Interface statisti
 Local mock regressions, builds, and renders have been checked. Older systems, physical multi-display/notch setups, and prolonged real-account use remain untested on devices. Licensed under the [MIT License](LICENSE). Copyright © 2026 ALEXESLAT.
 
 > The software and documentation were written by artificial intelligence.
+
+## 0.5.0 development status
+
+Manual in-app updates are in development, not released. The approved verification key is configured; the public signed feed is not published. Public downloads remain 0.4.0. See [update design and validation limits](docs/UPDATES.en.md).

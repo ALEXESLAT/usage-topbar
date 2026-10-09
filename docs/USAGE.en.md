@@ -95,3 +95,5 @@ Usage Topbar itself does not persist those data or credentials. Quitting stops m
 The minimum deployment target is macOS 13. Native Liquid Glass is used on macOS 26+, with SwiftUI material on earlier supported systems. See the [release notes](../RELEASE_NOTES.en.md) for tested and untested configurations. Intel Macs are not supported by 0.4.0.
 
 - Launch at login is off by default. The menu registers the macOS login item only when clicked; pending approval is shown without accepting system prompts. Click again to unregister.
+
+Development 0.5.0 adds manual “Check for Updates…”. Updates remain unavailable without a verification key. See [update privacy and pending validation](UPDATES.en.md).

@@ -1,3 +1,5 @@
+> **Isolated HTTPS updater test branch. Stable remains v0.4.0.** Read [test scope and limitations](HTTPS-VALIDATION.md).
+
 # Usage Topbar
 
 **简体中文** · [English](README.en.md)
@@ -44,3 +46,7 @@
 已完成本机模拟回归、构建与渲染；旧系统、物理多屏/刘海组合和真实账户长时间运行尚未实机覆盖。采用 [MIT 许可证](LICENSE)，版权署名 © 2026 ALEXESLAT。
 
 > 本程序及文档由人工智能编写。
+
+## 0.5.0 开发状态
+
+应用内手动更新正在开发，尚未发布。已配置批准的签名公钥，公开更新清单尚未发布；正式下载仍为 0.4.0。见[更新设计与验证边界](docs/UPDATES.md)。

@@ -4,6 +4,13 @@
 
 The current public release is **[0.4.0 (20)](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.4.0)**. Historical platform support does not define current support.
 
+## Unreleased: 0.5.0 (21)
+
+- Persist explicit overlay visibility across upgrades and relaunches; default to visible, and never write it from demos.
+- Integrate Sparkle 2.10.0 manual updates; automatic checks/downloads/installation and profiling are disabled.
+- Require signed feed, pre-extraction verification, project download source and increasing build; missing public key blocks checks.
+- A dedicated key is configured and isolated signed upgrades have been exercised; no public feed is published. Identity/version and recovery limitations remain documented.
+
 ## 0.4.0 (20) — 2026-10-09
 
 - Compact overlay with a centered percentage, pts aligned to its actual left edge, card details above throughput, and a Codex menu-bar mark.

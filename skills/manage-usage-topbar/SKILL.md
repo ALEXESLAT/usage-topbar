@@ -36,3 +36,7 @@ Prefer `demo` for validation because it uses generated sample percentages. `prev
 If `start` reports a missing installed app, follow the installation guide; rebuilding alone will not install it. For other failures, inspect `status` and report the exact error without treating an inspection failure as stopped. `stop` terminates every process named UsageTopbar; prefer the individual instance menu when closing only a demo. Do not patch or replace the Codex/ChatGPT desktop app.
 
 Launch at login is an optional menu setting, off by default. Only a user click registers or unregisters SMAppService.mainApp. Read the actual service status; do not enable it or approve system prompts on the user’s behalf.
+
+## Development updater boundary
+
+Unreleased 0.5.0 adds a manual Sparkle updater; the installed public release may still be 0.4.0. An approved public key is configured; the private key stays in the maintainer’s login Keychain. Building does not enable updates or install the development app. Key generation/export and publication require explicit authorization. Never create temporary test signing keys to bypass that boundary. See [update guide](../../docs/UPDATES.en.md).
