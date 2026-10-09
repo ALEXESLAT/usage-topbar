@@ -1,5 +1,7 @@
 # 安装与使用 Usage Topbar
 
+**简体中文** · [English](USAGE.en.md)
+
 本文适用于 **0.3.1（19）**，仅支持 Apple Silicon（arm64）、macOS 13+。[返回项目介绍](../README.md) · [发布下载](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.3.1)
 
 ## 安装与更新

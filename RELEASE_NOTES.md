@@ -1,5 +1,7 @@
 # Usage Topbar 0.3.1
 
+**简体中文** · [English](RELEASE_NOTES.en.md)
+
 **0.3.1（build 19） · Apple Silicon（arm64） · macOS 13+**
 
 液态玻璃风格的原生 macOS 小工具，把 Codex 的剩余额度、周期、重置倒计时、points 和整机网速放在窗口左上边缘。0.3 系列重点修正读数语义、连接恢复和屏幕布局；本版仅支持 Apple Silicon，不支持 Intel Mac。
@@ -37,6 +39,6 @@
 
 Usage Topbar 自身不保存用量快照、凭据、网速统计或截图；用量请求及正常连接元数据发往 OpenAI。详细数据范围见使用指南。
 
-本次仅更新文档和介绍；程序、`v0.3.1` 标签及二进制附件保持发布时内容。已发布插件/安装包内的文档是当时快照，最新说明以仓库为准。
+本次更新双语文档和介绍，并将已发布源码同步到 `main`；程序逻辑、`v0.3.1` 标签及二进制附件保持发布时内容。已发布插件/安装包内的文档是当时快照，最新说明以仓库为准。
 
-> 本程序及文档由人工智能编写。The software and documentation were written by artificial intelligence.
+> 本程序及文档由人工智能编写。
