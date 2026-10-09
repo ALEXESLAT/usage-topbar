@@ -28,6 +28,6 @@ CI runs mock regressions, builds, architecture/signature checks, and 12 render c
 
 Use [Releases](https://github.com/ALEXESLAT/usage-topbar/releases) for official builds. Before publishing, check version/build numbers, tests, arm64 architecture, signature, checksums, and attachments. CI does not publish releases.
 
-No license has been specified. Public visibility does not grant an open-source license. Confirm reuse, distribution, or contribution terms with the maintainer first.
+Licensed under the [MIT License](LICENSE). Copyright © 2026 ALEXESLAT. Preserve the copyright and license notices when using, modifying, or distributing the software. Third-party content retains its original terms.
 
 [Usage guide](docs/USAGE.en.md) · [Home](README.en.md)

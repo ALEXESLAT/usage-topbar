@@ -33,6 +33,6 @@ This release is **ad-hoc signed and not notarized by Apple**. macOS may block th
 
 Usage is read from OpenAI through the local Codex app-server. Interface statistics and window handling stay on the Mac. The app itself does not store usage or credentials; see the guide for the complete data scope.
 
-Local mock regressions, builds, and renders have been checked. Older systems, physical multi-display/notch setups, and prolonged real-account use remain untested on devices. No license has been specified; confirm reuse terms with the maintainer.
+Local mock regressions, builds, and renders have been checked. Older systems, physical multi-display/notch setups, and prolonged real-account use remain untested on devices. Licensed under the [MIT License](LICENSE). Copyright © 2026 ALEXESLAT.
 
 > The software and documentation were written by artificial intelligence.

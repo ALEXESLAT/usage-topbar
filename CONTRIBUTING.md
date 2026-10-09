@@ -28,6 +28,6 @@ CI 在标准 macOS 26 arm64 runner 上运行模拟回归、构建、架构/签�
 
 正式版本以 [Releases](https://github.com/ALEXESLAT/usage-topbar/releases) 为准。发布前核对版本/构建号、测试、arm64、签名与校验和，并人工确认附件；CI 不创建发布。
 
-仓库尚未指定许可证；公开可见不代表已授予开源使用许可。涉及复用、分发或贡献授权，请先与维护者确认。
+采用 [MIT 许可证](LICENSE)，版权署名 © 2026 ALEXESLAT。使用、修改或分发时须保留版权和许可声明；第三方内容仍遵循其原有许可。
 
 [使用指南](docs/USAGE.md) · [返回主页](README.md)
