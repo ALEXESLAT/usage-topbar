@@ -35,7 +35,7 @@ Checked on Apple Silicon / macOS 27.2:
 - Twelve light/dark, 1×/2×, full/zero/unknown UI renders.
 - Packaged version 0.3.1 (19), arm64-only architecture, macOS 13.0 deployment target, ad-hoc signature, and DMG checksum. Published asset SHA-256 digests matched the local files.
 
-**Older supported macOS installations, physical multi-monitor/notch combinations, and prolonged real-account monitoring have not been tested on devices.** Geometry simulation and successful compilation are not a guarantee for every Mac. No GitHub Actions workflow is configured, so no CI pass is claimed.
+**Older supported macOS installations, physical multi-monitor/notch combinations, and prolonged real-account monitoring have not been tested on devices.** Geometry simulation and successful compilation are not a guarantee for every Mac. See [GitHub Actions](https://github.com/ALEXESLAT/usage-topbar/actions/workflows/ci.yml) for subsequent repository checks; these are not retroactive CI validation of this release.
 
 Usage Topbar itself does not save usage snapshots, credentials, throughput statistics, or screenshots. OpenAI receives usage requests and normal connection metadata. See the usage guide for the full data scope.
 
