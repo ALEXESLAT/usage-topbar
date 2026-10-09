@@ -1,6 +1,6 @@
-# Usage Topbar 0.3.0
+# Usage Topbar 0.3.1
 
-Version 0.3.0 (build 18) improves Mac compatibility and usage-data correctness while preserving the compact edge-tab design.
+Version 0.3.1 (build 19) improves Mac compatibility and usage-data correctness while preserving the compact edge-tab design.
 
 > **AI-generated software:** This program and its documentation were written by artificial intelligence.
 >
@@ -8,7 +8,7 @@ Version 0.3.0 (build 18) improves Mac compatibility and usage-data correctness w
 
 ## Changes
 
-- Build universal arm64/x86_64 applications by default, targeting macOS 13+. Retain gated macOS 26 Liquid Glass and earlier-system material fallback.
+- Build Apple Silicon arm64 applications only, targeting macOS 13+. Retain gated macOS 26 Liquid Glass and earlier-system material fallback.
 - Place the overlay using both display axes, Retina scale, visible bounds, and notch safe area. Clamp horizontal edges; hide the overlay when no space remains above Codex, keeping the compact menu-bar indicator available. Track the frontmost matching window, including narrower windows.
 - Show unavailable usage as `--%`; never substitute another model's quota for Codex. Display the actual limiting window duration and its matching reset, validate numeric data, and reject stale/unmatched responses.
 - Recover from initialization/read timeouts and process failures with bounded buffers and capped backoff. Suspend monitoring on sleep and reconnect on wake. Discover bundled CLIs in registered Codex/ChatGPT application locations.
@@ -17,18 +17,18 @@ Version 0.3.0 (build 18) improves Mac compatibility and usage-data correctness w
 
 ## Packages
 
-- `UsageTopbar-0.3.0-macOS-universal.dmg`: Apple Silicon and Intel app, Applications shortcut, installation instructions.
-- `UsageTopbar-0.3.0-macOS-arm64.zip`: Apple Silicon app.
-- `usage-topbar-plugin-0.3.0.zip`: plugin, source, and synthetic regression tests.
+- `UsageTopbar-0.3.1-macOS-arm64.dmg`: Apple Silicon app, Applications shortcut, installation instructions.
+- `UsageTopbar-0.3.1-macOS-arm64.zip`: Apple Silicon app.
+- `usage-topbar-plugin-0.3.1.zip`: plugin, source, and synthetic regression tests.
 - `SHA256SUMS.txt`: artifact checksums.
 
 ## Validation
 
-- Native arm64 and Rosetta x86_64 regression suites passed: 17 quota assertions, 8 geometry assertions, 4 throughput assertions, and 7 mock app-server lifecycle scenarios per architecture.
-- Both executable slices declare macOS 13.0 minimum deployment; ad-hoc signature verification passed.
-- Native and Rosetta preview rendering passed; 12 light/dark, 1x/2x, full/zero/unavailable UI variants rendered successfully.
+- Native arm64 regression suite passed: 17 quota assertions, 8 geometry assertions, 4 throughput assertions, and 7 mock app-server lifecycle scenarios.
+- The arm64 executable declares macOS 13.0 minimum deployment; ad-hoc signature verification passed.
+- Native preview rendering passed; 12 light/dark, 1x/2x, full/zero/unavailable UI variants rendered successfully.
 - Host: Apple Silicon, macOS 27.2. No repository GitHub Actions workflow is configured.
 
 ## Verification limits
 
-The app is ad-hoc signed, not Developer ID signed or notarized. No installation or security settings are changed by this release task. Real Intel hardware, older macOS installations, physical multi-monitor/notch combinations, and authenticated live account monitoring require additional device testing; simulated geometry and universal builds do not replace those checks.
+The app is ad-hoc signed, not Developer ID signed or notarized. No installation or security settings are changed by this release task. Intel Macs are not supported. Older supported macOS installations, physical multi-monitor/notch combinations, and authenticated live account monitoring require additional device testing; simulated geometry and arm64 builds do not replace those checks.

@@ -27,13 +27,13 @@ Usage Topbar 是一款原生 macOS Codex 用量浮层。它吸附在 Codex 窗�
 
 ## Requirements
 
-- Apple Silicon or Intel Mac (universal DMG; the ZIP is Apple Silicon only)
+- Apple Silicon Mac (M-series; arm64 only)
 - macOS 13 or later
 - ChatGPT/Codex desktop environment with an authenticated Codex app-server
 
 ## Install the macOS app
 
-1. Download `UsageTopbar-0.3.0-macOS-universal.dmg` from the release package.
+1. Download `UsageTopbar-0.3.1-macOS-arm64.dmg` from the release package.
 2. Open it and drag `UsageTopbar.app` to Applications.
 3. Open the app and review the privacy disclosure before starting live mode.
 
@@ -43,11 +43,9 @@ The app is ad-hoc signed and not notarized. macOS may require you to approve the
 
 ```sh
 scripts/usage-topbar.sh build
-# Both arm64 and x86_64 are built by default. For a single architecture:
-USAGE_TOPBAR_ARCHS=arm64 scripts/usage-topbar.sh build
+# Builds the supported Apple Silicon arm64 application.
 # Synthetic-only regression suite (requires Xcode command-line tools and Python 3):
 python3 tests/run.py
-TEST_ARCH=x86_64 python3 tests/run.py # Intel Mac or installed Rosetta
 python3 tests/run.py --render /tmp/usage-topbar-previews
 ```
 
@@ -76,12 +74,12 @@ No third party receives interface statistics, window geometry, or color samples.
 
 ## Version
 
-Current release: `0.3.0` (build 18)
+Current release: `0.3.1` (build 19)
 
 ## Compatibility and verification
 
-The universal app targets macOS 13+. macOS 13–25 use SwiftUI material; macOS 26+ use gated Liquid Glass APIs. Screen color sampling requires macOS 14+ and existing permission; otherwise system appearance is used. Display placement uses AppKit points, both display axes, safe/visible bounds, and the destination screen scale. Maximized/full-screen windows without 52 pt of space above them use the menu-bar fallback. macOS may hide menu-bar extras when its menu bar is overcrowded.
+The Apple Silicon app targets macOS 13+. Intel Macs are not supported. Supported systems earlier than macOS 26 use SwiftUI material; macOS 26+ use gated Liquid Glass APIs. Screen color sampling requires macOS 14+ and existing permission; otherwise system appearance is used. Display placement uses AppKit points, both display axes, safe/visible bounds, and the destination screen scale. Maximized/full-screen windows without 52 pt of space above them use the menu-bar fallback. macOS may hide menu-bar extras when its menu bar is overcrowded.
 
 Sleep suspends timers and the child service; wake reconnects and refreshes without reusing old percentages. Network counters use actual elapsed time and separate interface baselines. App-server initialization/read deadlines, request IDs, bounded buffers, and capped retry delays prevent hangs or stale replies from masquerading as current usage. No account or diagnostic data is written to disk.
 
-0.3.0 validation: native arm64 and x86_64 compilation for macOS 13, synthetic parser/geometry/network/lifecycle regressions, and offscreen UI rendering. See release notes for runtime test results and untested hardware/OS combinations. Universal compilation alone does not establish compatibility with every Mac.
+0.3.1 validation: native arm64 compilation for macOS 13, synthetic parser/geometry/network/lifecycle regressions, and offscreen UI rendering. See release notes for runtime test results and untested hardware/OS combinations. Compilation alone does not establish compatibility with every Mac.

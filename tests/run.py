@@ -14,6 +14,6 @@ with tempfile.TemporaryDirectory(prefix='usage-topbar-tests-') as temp:
  mock=(root/'tests/mock-server.py').read_text()
  for mode in ['recover','hang','stall','foreign','error','oversized']:
   p=work/mode;p.write_text(mock);p.chmod(0o755)
- subprocess.run(['xcrun','swiftc',str(work/'main.swift'),'-o',str(work/'tests'),'-target',os.environ.get('TEST_ARCH',os.uname().machine)+'-apple-macos13.0','-module-cache-path',str(work/'cache'),'-framework','AppKit','-framework','CoreGraphics','-framework','IOKit','-framework','Network','-framework','ScreenCaptureKit'],check=True)
+ subprocess.run(['xcrun','swiftc',str(work/'main.swift'),'-o',str(work/'tests'),'-target','arm64-apple-macos13.0','-module-cache-path',str(work/'cache'),'-framework','AppKit','-framework','CoreGraphics','-framework','IOKit','-framework','Network','-framework','ScreenCaptureKit'],check=True)
  if render_dir: render_dir.mkdir(parents=True,exist_ok=True)
  subprocess.run([str(work/'tests'),str(render_dir or work)],check=True,timeout=60)

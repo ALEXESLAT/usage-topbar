@@ -403,7 +403,7 @@ final class RateLimitClient {
             pendingID = 1
             armResponseTimeout()
             send(["method": "initialize", "id": 1, "params": [
-                "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.3.0"],
+                "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.3.1"],
                 "capabilities": ["experimentalApi": true]
             ]])
         } catch {
