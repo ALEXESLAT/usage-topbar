@@ -8,9 +8,18 @@ import ScreenCaptureKit
 import SwiftUI
 
 struct UsageSnapshot {
-    let remaining: Double
+    let remaining: Double?
     let detail: String
     let resetText: String?
+
+    var percentageText: String {
+        guard let remaining, remaining.isFinite else { return "--%" }
+        return "\(Int(max(0, min(100, remaining)).rounded()))%"
+    }
+
+    static func unavailable(_ reason: String) -> UsageSnapshot {
+        UsageSnapshot(remaining: nil, detail: reason, resetText: nil)
+    }
 
     static let mock = UsageSnapshot(
         remaining: 68,
@@ -42,7 +51,7 @@ enum GPTConnectionState: Equatable {
 }
 
 final class OverlayModel: ObservableObject {
-    @Published var snapshot: UsageSnapshot = .mock
+    @Published var snapshot: UsageSnapshot = .unavailable("Checking Codex…")
     @Published var isDarkBackground = true
     @Published var connectionState: GPTConnectionState = .checking
     @Published var downloadBytesPerSecond: Double = 0
@@ -94,7 +103,7 @@ struct UsageEdgeTabView: View {
     @ObservedObject var model: OverlayModel
 
     private var remaining: Double {
-        max(0, min(100, model.snapshot.remaining))
+        max(0, min(100, model.snapshot.remaining ?? 0))
     }
 
     private var primaryColor: Color {
@@ -120,6 +129,7 @@ struct UsageEdgeTabView: View {
     }
 
     private var progressColor: Color {
+        if model.snapshot.remaining == nil { return .gray }
         if remaining <= 20 { return .red }
         if remaining <= 50 { return .orange }
         return .green
@@ -191,7 +201,7 @@ struct UsageEdgeTabView: View {
             }
             .frame(width: 28, height: 28)
 
-            Text("\(Int(remaining.rounded()))%")
+            Text(model.snapshot.percentageText)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(primaryColor)
@@ -265,7 +275,7 @@ struct UsageEdgeTabView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(
-                "Codex remaining usage \(Int(remaining.rounded())) percent. \(accessibilityDetail). \(model.connectionState.label). \(throughputAccessibilityText)"
+                "Codex remaining usage \(model.snapshot.percentageText). \(accessibilityDetail). \(model.connectionState.label). \(throughputAccessibilityText)"
             )
     }
 }
@@ -309,231 +319,262 @@ final class RateLimitClient {
 
     private var process: Process?
     private var input: FileHandle?
+    private var output: FileHandle?
+    private var errors: FileHandle?
     private var buffer = Data()
     private var requestID = 2
+    private var pendingID: Int?
+    private var ready = false
     private var pollTimer: Timer?
     private var responseTimeout: Timer?
     private var restartTimer: Timer?
     private var restartAttempt = 0
-    private var isStopped = false
-    private let pathMonitor = NWPathMonitor()
+    private var isStopped = true
+    private var generation = 0
+    private var pathMonitor: NWPathMonitor?
     private let pathMonitorQueue = DispatchQueue(label: "local.alex.usage-topbar.network")
-    private var pathMonitorStarted = false
-    private var hasConnectedSnapshot = false
     private var pathIsSatisfied = false
+    private let executableOverride: String?
+    private let timeoutInterval: TimeInterval
+    private let retryDelays: [TimeInterval]
+    private let monitorsPath: Bool
+
+    // Dependency injection keeps regression tests entirely local and credential-free.
+    init(executable: String? = nil, timeout: TimeInterval = 10,
+         retryDelays: [TimeInterval] = [1, 2, 5, 10, 30], monitorsPath: Bool = true) {
+        self.executableOverride = executable
+        self.timeoutInterval = timeout
+        self.retryDelays = retryDelays.isEmpty ? [30] : retryDelays
+        self.monitorsPath = monitorsPath
+    }
 
     func start() {
+        guard isStopped else { return }
         isStopped = false
-        startPathMonitoring()
+        signal(SIGPIPE, SIG_IGN)
+        onStatus?("Checking Codex…")
+        onConnectionState?(.checking)
+        if monitorsPath { startPathMonitoring() }
         launchProcess()
     }
 
     private func launchProcess() {
-        guard !isStopped, process?.isRunning != true else { return }
+        guard !isStopped, process == nil else { return }
         restartTimer?.invalidate()
         restartTimer = nil
-        guard let executable = findCodexBinary() else {
-            markDisconnected()
-            onStatus?("Codex not found")
+        guard let executable = executableOverride ?? findCodexBinary() else {
+            fail("Codex not found", restart: true)
             return
         }
-
         buffer.removeAll(keepingCapacity: true)
+        generation += 1
+        let epoch = generation
         let child = Process()
-        let stdinPipe = Pipe()
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
+        let stdinPipe = Pipe(), stdoutPipe = Pipe(), stderrPipe = Pipe()
         child.executableURL = URL(fileURLWithPath: executable)
         child.arguments = ["app-server", "--stdio"]
         child.standardInput = stdinPipe
         child.standardOutput = stdoutPipe
         child.standardError = stderrPipe
-
-        stdoutPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        output = stdoutPipe.fileHandleForReading
+        errors = stderrPipe.fileHandleForReading
+        output?.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
-            guard !data.isEmpty else { return }
-            DispatchQueue.main.async { self?.consume(data) }
+            if data.isEmpty { handle.readabilityHandler = nil; return }
+            DispatchQueue.main.async {
+                guard let self, self.generation == epoch, !self.isStopped else { return }
+                self.consume(data)
+            }
         }
-        stderrPipe.fileHandleForReading.readabilityHandler = { handle in
-            _ = handle.availableData
+        // Drain without persisting private app-server diagnostic content.
+        errors?.readabilityHandler = { handle in
+            if handle.availableData.isEmpty { handle.readabilityHandler = nil }
         }
-
+        child.terminationHandler = { [weak self] _ in
+            DispatchQueue.main.async {
+                guard let self, self.generation == epoch, !self.isStopped else { return }
+                self.fail("Codex unavailable · retrying", restart: true)
+            }
+        }
+        process = child
+        input = stdinPipe.fileHandleForWriting
         do {
             try child.run()
-            process = child
-            input = stdinPipe.fileHandleForWriting
-            child.terminationHandler = { [weak self, weak child] _ in
-                DispatchQueue.main.async {
-                    guard let self, let child, self.process === child else { return }
-                    self.pollTimer?.invalidate()
-                    self.pollTimer = nil
-                    self.responseTimeout?.invalidate()
-                    self.responseTimeout = nil
-                    self.process = nil
-                    self.input = nil
-                    self.markDisconnected()
-                    self.onStatus?("Codex service unavailable · retrying")
-                    self.scheduleRestart()
-                }
-            }
-            send([
-                "method": "initialize",
-                "id": 1,
-                "params": [
-                    "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.2.6"],
-                    "capabilities": ["experimentalApi": true, "requestAttestation": false]
-                ]
-            ])
+            pendingID = 1
+            armResponseTimeout()
+            send(["method": "initialize", "id": 1, "params": [
+                "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.3.0"],
+                "capabilities": ["experimentalApi": true]
+            ]])
         } catch {
-            markDisconnected()
-            onStatus?("Start failed · retrying")
-            scheduleRestart()
+            fail("Start failed · retrying", restart: true)
         }
+    }
+
+    private func disconnectProcess() {
+        generation += 1
+        pollTimer?.invalidate(); pollTimer = nil
+        responseTimeout?.invalidate(); responseTimeout = nil
+        pendingID = nil
+        ready = false
+        output?.readabilityHandler = nil
+        errors?.readabilityHandler = nil
+        output = nil; errors = nil
+        try? input?.close(); input = nil
+        let child = process
+        process = nil
+        child?.terminationHandler = nil
+        if child?.isRunning == true {
+            child?.terminate()
+            // Bound shutdown of a wedged child; never target unrelated processes.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if let child, child.isRunning { kill(child.processIdentifier, SIGKILL) }
+            }
+        }
+        buffer.removeAll(keepingCapacity: true)
     }
 
     func stop() {
         isStopped = true
-        restartTimer?.invalidate()
-        restartTimer = nil
-        pollTimer?.invalidate()
-        pollTimer = nil
-        responseTimeout?.invalidate()
-        responseTimeout = nil
-        if pathMonitorStarted {
-            pathMonitor.cancel()
-            pathMonitorStarted = false
-        }
-        input?.closeFile()
-        if process?.isRunning == true { process?.terminate() }
-        process = nil
+        restartTimer?.invalidate(); restartTimer = nil
+        pathMonitor?.cancel(); pathMonitor = nil
+        pathIsSatisfied = false
+        disconnectProcess()
     }
 
     func refresh() {
+        guard !isStopped else { return }
         guard process?.isRunning == true else {
-            markDisconnected()
-            scheduleRestart(after: 0.1)
+            fail("Codex unavailable · retrying", restart: true)
             return
         }
+        guard ready, pendingID == nil else { return }
         let id = requestID
         requestID += 1
-        send(["method": "account/rateLimits/read", "id": id])
+        pendingID = id
         armResponseTimeout()
+        send(["method": "account/rateLimits/read", "id": id])
     }
 
     private func beginPolling() {
-        restartAttempt = 0
-        pollTimer?.invalidate()
+        ready = true
         refresh()
+        pollTimer?.invalidate()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             self?.refresh()
         }
+        if let pollTimer { RunLoop.main.add(pollTimer, forMode: .common) }
+        pollTimer?.tolerance = 3
     }
 
     private func startPathMonitoring() {
-        guard !pathMonitorStarted else { return }
-        pathMonitorStarted = true
-        pathMonitor.pathUpdateHandler = { [weak self] path in
+        let monitor = NWPathMonitor()
+        pathMonitor = monitor
+        monitor.pathUpdateHandler = { [weak self, weak monitor] path in
             DispatchQueue.main.async {
-                guard let self else { return }
-                if path.status == .satisfied {
-                    let justReconnected = !self.pathIsSatisfied
-                    self.pathIsSatisfied = true
-                    self.onConnectionState?(self.hasConnectedSnapshot ? .connected : .checking)
-                    if self.process?.isRunning == true &&
-                        (!self.hasConnectedSnapshot || justReconnected) {
+                guard let self, let monitor, self.pathMonitor === monitor, !self.isStopped else { return }
+                let wasSatisfied = self.pathIsSatisfied
+                self.pathIsSatisfied = path.status == .satisfied
+                if self.pathIsSatisfied {
+                    if !wasSatisfied {
+                        self.onConnectionState?(.checking)
                         self.refresh()
                     }
                 } else {
-                    self.pathIsSatisfied = false
-                    self.markDisconnected()
+                    self.onConnectionState?(.disconnected)
+                    self.onStatus?("Offline · data unavailable")
                 }
             }
         }
-        pathMonitor.start(queue: pathMonitorQueue)
+        monitor.start(queue: pathMonitorQueue)
     }
 
     private func armResponseTimeout() {
         responseTimeout?.invalidate()
-        responseTimeout = Timer.scheduledTimer(withTimeInterval: 10, repeats: false) { [weak self] _ in
-            self?.markDisconnected()
-            self?.onStatus?("Codex service unavailable")
+        responseTimeout = Timer.scheduledTimer(withTimeInterval: timeoutInterval, repeats: false) { [weak self] _ in
+            self?.fail("Request timed out · retrying", restart: true)
         }
+        if let responseTimeout { RunLoop.main.add(responseTimeout, forMode: .common) }
     }
 
-    private func markConnected() {
-        responseTimeout?.invalidate()
-        responseTimeout = nil
-        hasConnectedSnapshot = true
-        restartAttempt = 0
-        onConnectionState?(.connected)
-    }
-
-    private func scheduleRestart(after requestedDelay: TimeInterval? = nil) {
-        guard !isStopped, restartTimer == nil else { return }
-        let delays: [TimeInterval] = [1, 2, 5, 10, 30]
-        let delay = requestedDelay ?? delays[min(restartAttempt, delays.count - 1)]
-        restartAttempt += 1
-        restartTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
-            guard let self else { return }
-            self.restartTimer = nil
-            self.launchProcess()
-        }
-    }
-
-    private func markDisconnected() {
-        responseTimeout?.invalidate()
-        responseTimeout = nil
-        hasConnectedSnapshot = false
+    private func fail(_ status: String, restart: Bool) {
+        responseTimeout?.invalidate(); responseTimeout = nil
+        pendingID = nil
         onConnectionState?(.disconnected)
+        onStatus?(status)
+        if restart {
+            disconnectProcess()
+            scheduleRestart()
+        }
+    }
+
+    private func scheduleRestart() {
+        guard !isStopped, restartTimer == nil else { return }
+        let delay = retryDelays[min(restartAttempt, retryDelays.count - 1)]
+        restartAttempt = min(restartAttempt + 1, retryDelays.count - 1)
+        restartTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            self?.restartTimer = nil
+            self?.launchProcess()
+        }
+        if let restartTimer { RunLoop.main.add(restartTimer, forMode: .common) }
     }
 
     private func consume(_ data: Data) {
         buffer.append(data)
+        guard buffer.count <= 1_048_576 else {
+            fail("Invalid response · retrying", restart: true)
+            return
+        }
         while let newline = buffer.firstIndex(of: 0x0A) {
-            let line = buffer[..<newline]
+            let line = Data(buffer[..<newline])
             buffer.removeSubrange(...newline)
             guard !line.isEmpty,
-                  let object = try? JSONSerialization.jsonObject(with: Data(line)) as? [String: Any] else { continue }
+                  let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any] else { continue }
             handle(object)
         }
     }
 
     private func handle(_ object: [String: Any]) {
-        if (object["id"] as? NSNumber)?.intValue == 1, object["result"] != nil {
-            send(["method": "initialized"])
-            beginPolling()
-            return
-        }
-
-        if let result = object["result"] as? [String: Any], let snapshot = parseReadResponse(result) {
-            markConnected()
-            onSnapshot?(snapshot)
-            return
-        }
-
-        if object["method"] as? String == "account/rateLimits/updated",
-           let params = object["params"] as? [String: Any],
-           let limits = params["rateLimits"] as? [String: Any],
-           let snapshot = parseRateLimits(limits) {
-            markConnected()
-            onSnapshot?(snapshot)
-            return
-        }
-
+        // Periodic reads are authoritative. Unsolicited/model-specific notifications
+        // cannot cancel a request deadline or replace the Codex bucket.
+        guard let id = object["id"] as? Int, id == pendingID else { return }
+        responseTimeout?.invalidate(); responseTimeout = nil
+        pendingID = nil
         if object["error"] != nil {
-            markDisconnected()
-            onStatus?("Codex service unavailable")
+            fail("Codex request failed", restart: !ready)
+            return
         }
+        guard let result = object["result"] as? [String: Any] else {
+            fail("Usage unavailable", restart: !ready)
+            return
+        }
+        if id == 1 {
+            send(["method": "initialized"])
+            if process != nil { beginPolling() }
+            return
+        }
+        guard let snapshot = parseReadResponse(result) else {
+            fail("Usage unavailable", restart: false)
+            return
+        }
+        guard !monitorsPath || pathIsSatisfied else {
+            fail("Offline · data unavailable", restart: false)
+            return
+        }
+        restartAttempt = 0
+        onConnectionState?(.connected)
+        onSnapshot?(snapshot)
     }
 
-    private func parseReadResponse(_ result: [String: Any]) -> UsageSnapshot? {
+    func parseReadResponse(_ result: [String: Any]) -> UsageSnapshot? {
         var selected: [String: Any]?
         if let buckets = result["rateLimitsByLimitId"] as? [String: Any] {
             selected = buckets["codex"] as? [String: Any]
-            if selected == nil { selected = buckets.values.compactMap { $0 as? [String: Any] }.first }
+
         }
         if selected == nil { selected = result["rateLimits"] as? [String: Any] }
         guard var limits = selected else { return nil }
+        if let limitID = limits["limitId"] as? String, limitID != "codex" { return nil }
         if limits["credits"] == nil {
             limits["credits"] = result["credits"]
         }
@@ -547,7 +588,7 @@ final class RateLimitClient {
         guard let remaining = windows.map({ $0.remaining }).min() ?? creditFallback(limits) else { return nil }
         var detailParts: [String] = []
         if let limiting = windows.min(by: { $0.remaining < $1.remaining }) {
-            detailParts.append(remainingDaysLabel(until: limiting.resetsAt))
+            detailParts.append(limiting.label)
             detailParts.append(contentsOf: windows
                 .filter { $0.label != limiting.label && abs($0.remaining - remaining) >= 1 }
                 .map { "\($0.label) \(Int($0.remaining.rounded()))%" })
@@ -560,7 +601,7 @@ final class RateLimitClient {
             detailParts.append("points --")
         }
 
-        let nextReset = windows.compactMap { $0.resetsAt }.min()
+        let nextReset = windows.min(by: { $0.remaining < $1.remaining })?.resetsAt
         return UsageSnapshot(
             remaining: remaining,
             detail: detailParts.joined(separator: "  ·  "),
@@ -577,17 +618,20 @@ final class RateLimitClient {
 
     private func creditFallback(_ limits: [String: Any]) -> Double? {
         guard let individual = limits["individualLimit"] as? [String: Any] else { return nil }
-        return number(individual["remainingPercent"])
+        return number(individual["remainingPercent"]).map { max(0, min(100, $0)) }
     }
 
     private func number(_ value: Any?) -> Double? {
-        if let n = value as? NSNumber { return n.doubleValue }
-        if let s = value as? String { return Double(s) }
+        if let n = value as? NSNumber {
+            guard CFGetTypeID(n) != CFBooleanGetTypeID(), n.doubleValue.isFinite else { return nil }
+            return n.doubleValue
+        }
+        if let s = value as? String, let number = Double(s), number.isFinite { return number }
         return nil
     }
 
     private func durationLabel(_ minutes: Double?) -> String {
-        guard let minutes else { return "window" }
+        guard let minutes, minutes > 0, minutes < 10_000_000 else { return "window" }
         if minutes >= 1440 {
             let days = Int((minutes / 1440).rounded())
             return days == 1 ? "1 day" : "\(days) days"
@@ -600,21 +644,15 @@ final class RateLimitClient {
     }
 
     private func formatReset(_ timestamp: Double) -> String {
-        let seconds = timestamp - Date().timeIntervalSince1970
+        let seconds = min(315_360_000, timestamp - Date().timeIntervalSince1970)
         if seconds <= 0 { return "now" }
         if seconds < 3600 { return "\(max(1, Int(ceil(seconds / 60))))m" }
         if seconds < 86_400 { return "\(Int(ceil(seconds / 3600)))h" }
         return "\(Int(ceil(seconds / 86_400)))d"
     }
 
-    private func remainingDaysLabel(until timestamp: Double?) -> String {
-        guard let timestamp else { return "reset --" }
-        let seconds = max(0, timestamp - Date().timeIntervalSince1970)
-        let days = max(1, Int(ceil(seconds / 86_400)))
-        return days == 1 ? "1 day" : "\(days) days"
-    }
-
     private func formatPoints(_ value: Double) -> String {
+        if abs(value) > 1_000_000_000 { return "points --" }
         if value >= 1_000 {
             let compact = String(format: "%.1fk", value / 1_000).replacingOccurrences(of: ".0k", with: "k")
             return "\(compact) points"
@@ -627,13 +665,22 @@ final class RateLimitClient {
         guard JSONSerialization.isValidJSONObject(object),
               var data = try? JSONSerialization.data(withJSONObject: object) else { return }
         data.append(0x0A)
-        input?.write(data)
+        do { try input?.write(contentsOf: data) }
+        catch { fail("Connection closed · retrying", restart: true) }
     }
 
     private func findCodexBinary() -> String? {
         if let override = ProcessInfo.processInfo.environment["CODEX_BINARY"],
            FileManager.default.isExecutableFile(atPath: override) { return override }
-        let candidates = [
+        let applicationURLs = ["com.openai.codex", "com.openai.chat"].compactMap {
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
+        }
+        let discovered = applicationURLs.flatMap { app in
+            ["codex-cli/bin/codex", "codex"].map { app.appendingPathComponent("Contents/Resources/" + $0).path }
+        }
+        let candidates = discovered + [
+            "/Applications/Codex.app/Contents/Resources/codex-cli/bin/codex",
+            "/Applications/Codex.app/Contents/Resources/codex",
             "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex",
             "/Applications/ChatGPT.app/Contents/Resources/codex",
             "/opt/homebrew/bin/codex",
@@ -643,154 +690,120 @@ final class RateLimitClient {
     }
 }
 
+struct NetworkBytes {
+    let received: UInt64
+    let sent: UInt64
+}
+
+enum NetworkRateCalculator {
+    static func rates(previous: [String: NetworkBytes], current: [String: NetworkBytes],
+                      elapsed: TimeInterval, maximumGap: TimeInterval) -> (Double, Double) {
+        guard elapsed > 0, elapsed <= maximumGap else { return (0, 0) }
+        var received: Double = 0, sent: Double = 0
+        for (name, next) in current {
+            guard let old = previous[name] else { continue }
+            if next.received >= old.received { received += Double(next.received - old.received) }
+            if next.sent >= old.sent { sent += Double(next.sent - old.sent) }
+        }
+        return (received / elapsed, sent / elapsed)
+    }
+}
+
 final class SystemNetworkUsageMonitor {
     var onRates: ((_ downloadBytesPerSecond: Double, _ uploadBytesPerSecond: Double) -> Void)?
-
-    private struct Totals {
-        let received: UInt64
-        let sent: UInt64
-    }
-
     private var sampleTimer: Timer?
     private var powerTimer: Timer?
     private var activeSampleInterval: Double = 2
-    private var previousTotals: Totals?
+    private var previousTotals: [String: NetworkBytes]?
+    private var previousTime = ProcessInfo.processInfo.systemUptime
 
     func start() {
-        guard sampleTimer == nil, powerTimer == nil else { return }
+        guard sampleTimer == nil else { return }
         scheduleSampler(interval: preferredSampleInterval())
         powerTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            self?.refreshSamplingInterval()
+            guard let self else { return }
+            let preferred = self.preferredSampleInterval()
+            if preferred != self.activeSampleInterval {
+                self.sampleTimer?.invalidate()
+                self.scheduleSampler(interval: preferred)
+            }
         }
+        powerTimer?.tolerance = 3
     }
 
     private func scheduleSampler(interval: Double) {
         activeSampleInterval = interval
         previousTotals = readExternalInterfaceTotals()
-        sampleTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            self?.sample()
-        }
+        previousTime = ProcessInfo.processInfo.systemUptime
+        sampleTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in self?.sample() }
+        sampleTimer?.tolerance = interval * 0.2
     }
 
     func stop() {
-        sampleTimer?.invalidate()
-        sampleTimer = nil
-        powerTimer?.invalidate()
-        powerTimer = nil
+        sampleTimer?.invalidate(); sampleTimer = nil
+        powerTimer?.invalidate(); powerTimer = nil
         previousTotals = nil
         onRates?(0, 0)
-    }
-
-    private func refreshSamplingInterval() {
-        let preferred = preferredSampleInterval()
-        guard preferred != activeSampleInterval else { return }
-        sampleTimer?.invalidate()
-        sampleTimer = nil
-        scheduleSampler(interval: preferred)
     }
 
     private func preferredSampleInterval() -> Double {
         if ProcessInfo.processInfo.isLowPowerModeEnabled { return 5 }
         guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
-              let source = IOPSGetProvidingPowerSourceType(snapshot)?.takeUnretainedValue()
-                as? String else { return 2 }
+              let source = IOPSGetProvidingPowerSourceType(snapshot)?.takeUnretainedValue() as? String else { return 2 }
         return source == (kIOPSBatteryPowerValue as String) ? 5 : 2
     }
 
     private func sample() {
-        guard let current = readExternalInterfaceTotals() else {
-            previousTotals = nil
-            onRates?(0, 0)
-            return
-        }
-        defer { previousTotals = current }
-        guard let previous = previousTotals else { return }
-        let received = current.received >= previous.received
-            ? current.received - previous.received
-            : 0
-        let sent = current.sent >= previous.sent
-            ? current.sent - previous.sent
-            : 0
-        onRates?(
-            Double(received) / activeSampleInterval,
-            Double(sent) / activeSampleInterval
-        )
+        let now = ProcessInfo.processInfo.systemUptime
+        let current = readExternalInterfaceTotals()
+        defer { previousTotals = current; previousTime = now }
+        guard let current, let previous = previousTotals else { onRates?(0, 0); return }
+        let rates = NetworkRateCalculator.rates(previous: previous, current: current,
+            elapsed: now - previousTime, maximumGap: activeSampleInterval * 3)
+        onRates?(rates.0, rates.1)
     }
 
-    private func readExternalInterfaceTotals() -> Totals? {
+    private func readExternalInterfaceTotals() -> [String: NetworkBytes]? {
         var pointer: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&pointer) == 0, let first = pointer else { return nil }
         defer { freeifaddrs(first) }
-
-        var received: UInt64 = 0
-        var sent: UInt64 = 0
+        var totals: [String: NetworkBytes] = [:]
         var cursor: UnsafeMutablePointer<ifaddrs>? = first
         while let address = cursor {
             defer { cursor = address.pointee.ifa_next }
             guard let socketAddress = address.pointee.ifa_addr,
                   Int32(socketAddress.pointee.sa_family) == AF_LINK else { continue }
-
             let flags = Int32(bitPattern: address.pointee.ifa_flags)
-            guard flags & IFF_UP != 0,
-                  flags & IFF_RUNNING != 0,
-                  flags & IFF_LOOPBACK == 0 else { continue }
-
+            guard flags & IFF_UP != 0, flags & IFF_RUNNING != 0, flags & IFF_LOOPBACK == 0 else { continue }
             let name = String(cString: address.pointee.ifa_name)
             guard name.hasPrefix("en") || name.hasPrefix("pdp_ip"),
                   let rawData = address.pointee.ifa_data else { continue }
             let data = rawData.assumingMemoryBound(to: if_data.self).pointee
-            received &+= UInt64(data.ifi_ibytes)
-            sent &+= UInt64(data.ifi_obytes)
+            totals[name] = NetworkBytes(received: UInt64(data.ifi_ibytes), sent: UInt64(data.ifi_obytes))
         }
-        return Totals(received: received, sent: sent)
+        return totals
     }
 }
 
-final class TLSProbeBenchmark {
-    private let queue = DispatchQueue(label: "local.alex.usage-topbar.probe-benchmark")
-    private var connection: NWConnection?
-    private var timeout: Timer?
-    private var attemptID: UUID?
-    private(set) var successes = 0
-    private(set) var failures = 0
-
-    func startAttempt() {
-        guard connection == nil else { return }
-        let id = UUID()
-        attemptID = id
-        let tcp = NWProtocolTCP.Options()
-        tcp.connectionTimeout = 2
-        let candidate = NWConnection(
-            host: NWEndpoint.Host("chatgpt.com"),
-            port: NWEndpoint.Port(rawValue: 443)!,
-            using: NWParameters(tls: NWProtocolTLS.Options(), tcp: tcp)
-        )
-        connection = candidate
-        candidate.stateUpdateHandler = { [weak self] state in
-            DispatchQueue.main.async {
-                guard let self, self.attemptID == id else { return }
-                switch state {
-                case .ready: self.finish(id: id, succeeded: true)
-                case .failed: self.finish(id: id, succeeded: false)
-                default: break
-                }
-            }
-        }
-        timeout = Timer.scheduledTimer(withTimeInterval: 2, repeats: false) { [weak self] _ in
-            self?.finish(id: id, succeeded: false)
-        }
-        candidate.start(queue: queue)
+/// Screen coordinates are AppKit points, independent of Retina backing pixels.
+enum OverlayPlacement {
+    static func frame(window: CGRect, visibleScreens: [CGRect], scale: CGFloat) -> CGRect? {
+        guard let screen = visibleScreens.max(by: {
+            intersectionArea($0, window) < intersectionArea($1, window)
+        }), intersectionArea(screen, window) > 0, screen.width >= 328 else { return nil }
+        let x = min(max(window.minX, screen.minX), screen.maxX - 328)
+        let y = window.maxY - 22
+        // Preserve the attachment: if the information area cannot fit above the
+        // window, keep the menu bar available instead of obscuring content/notch.
+        guard y >= screen.minY, y + 74 <= screen.maxY else { return nil }
+        let factor = max(1, scale)
+        return CGRect(x: (x * factor).rounded() / factor,
+                      y: (y * factor).rounded() / factor, width: 328, height: 74)
     }
 
-    private func finish(id: UUID, succeeded: Bool) {
-        guard attemptID == id else { return }
-        timeout?.invalidate()
-        timeout = nil
-        attemptID = nil
-        connection?.stateUpdateHandler = nil
-        connection?.cancel()
-        connection = nil
-        if succeeded { successes += 1 } else { failures += 1 }
+    private static func intersectionArea(_ a: CGRect, _ b: CGRect) -> CGFloat {
+        let intersection = a.intersection(b)
+        return intersection.isNull ? 0 : intersection.width * intersection.height
     }
 }
 
@@ -804,8 +817,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let overlayWidth: CGFloat = 328
     private let overlayHeight: CGFloat = 74
-    private let edgeOverlap: CGFloat = 22
-    private let windowLeadingInset: CGFloat = 0
     private var panel: NSPanel!
     private let overlayModel = OverlayModel()
     private var statusItem: NSStatusItem!
@@ -818,6 +829,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var currentDarkBackground: Bool?
     private var contrastSamplePending = false
     private var userHidden = false
+    private var sleeping = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configureApplicationIcon()
@@ -832,6 +844,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         positionTimer?.invalidate()
         mockTimer?.invalidate()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
+        NotificationCenter.default.removeObserver(self)
     }
 
     private func requestConsent() {
@@ -900,6 +913,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func configureStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "∞ --%"
+        statusItem.button?.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+        statusItem.button?.toolTip = "Usage Topbar — Codex remaining usage"
         let menu = NSMenu()
         menu.addItem(withTitle: "立即刷新", action: #selector(refreshNow), keyEquivalent: "r")
         menu.addItem(withTitle: "显示/隐藏浮层", action: #selector(togglePanel), keyEquivalent: "h")
@@ -920,7 +935,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         client.onStatus = { [weak self] status in
             Task { @MainActor in
                 self?.statusItem.button?.title = "∞ --%"
-                self?.overlayModel.snapshot = UsageSnapshot(remaining: 0, detail: status, resetText: nil)
+                self?.overlayModel.snapshot = .unavailable(status)
             }
         }
         client.onConnectionState = { [weak self] state in
@@ -961,10 +976,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startPositionTracking() {
+        positionTimer?.invalidate()
         synchronizePanelVisibility()
         positionTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.synchronizePanelVisibility()
         }
+        positionTimer?.tolerance = 0.1
     }
 
     private func synchronizePanelVisibility() {
@@ -972,12 +989,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startActivationTracking() {
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(willSleep(_:)), name: NSWorkspace.willSleepNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(didWake(_:)), name: NSWorkspace.didWakeNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(screensChanged(_:)), name: NSApplication.didChangeScreenParametersNotification, object: nil)
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
             selector: #selector(workspaceApplicationDidActivate(_:)),
             name: NSWorkspace.didActivateApplicationNotification,
             object: nil
         )
+    }
+
+    @objc private func willSleep(_ notification: Notification) {
+        sleeping = true
+        panel.orderOut(nil)
+        positionTimer?.invalidate(); positionTimer = nil
+        rateClient?.stop()
+        networkUsageMonitor?.stop()
+        overlayModel.snapshot = .unavailable("Sleeping · data unavailable")
+        overlayModel.connectionState = .checking
+        statusItem.button?.title = "∞ --%"
+    }
+
+    @objc private func didWake(_ notification: Notification) {
+        sleeping = false
+        rateClient?.start()
+        networkUsageMonitor?.start()
+        startPositionTracking()
+    }
+
+    @objc private func screensChanged(_ notification: Notification) {
+        currentDarkBackground = nil
+        lastContrastSample = .distantPast
+        synchronizePanelVisibility()
     }
 
     @objc private func workspaceApplicationDidActivate(_ notification: Notification) {
@@ -987,7 +1031,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updatePanelVisibility(for application: NSRunningApplication?) {
         guard let application,
-              !userHidden,
+              !userHidden, !sleeping,
               isCodexApplication(application) else {
             panel.orderOut(nil)
             return
@@ -1006,30 +1050,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func apply(_ snapshot: UsageSnapshot) {
         overlayModel.snapshot = snapshot
-        statusItem.button?.title = "∞ \(Int(snapshot.remaining.rounded()))%"
+        statusItem.button?.title = "∞ \(snapshot.percentageText)"
     }
 
-    private func positionPanel(for window: TrackedWindow) {
+    private func positionPanel(for window: TrackedWindow) -> Bool {
+        guard let primary = NSScreen.screens.first else { return false }
         let bounds = window.bounds
-        let primaryTop = NSScreen.screens.first(where: { $0.frame.origin == .zero })?.frame.maxY ?? NSScreen.main?.frame.maxY ?? 0
-        let windowTop = primaryTop - bounds.minY
-        let x = bounds.minX + windowLeadingInset
-        // The lower 22 points sit behind Codex. With a 10-point bottom
-        // radius, the left edge remains vertical for 12 points below the
-        // meeting line before it starts rounding inward.
-        let preferredY = windowTop - edgeOverlap
-        let screen = NSScreen.screens.first {
-            $0.frame.minX <= bounds.midX && bounds.midX <= $0.frame.maxX
-        } ?? NSScreen.main
-        let maximumY = (screen?.frame.maxY ?? primaryTop) - overlayHeight
-        let y = min(preferredY, maximumY)
-        panel.setFrameOrigin(NSPoint(
-            x: x,
-            y: y
-        ))
-        if panel.isVisible {
-            updateContrast(window: window, panelX: x)
+        let converted = CGRect(x: bounds.minX, y: primary.frame.maxY - bounds.maxY,
+                               width: bounds.width, height: bounds.height)
+        let screens = NSScreen.screens
+        let screen = screens.max {
+            let a = $0.frame.intersection(converted), b = $1.frame.intersection(converted)
+            return (a.isNull ? 0 : a.width * a.height) < (b.isNull ? 0 : b.width * b.height)
         }
+        guard let frame = OverlayPlacement.frame(window: converted,
+            visibleScreens: screens.map { screen in
+                let safeTop = screen.frame.maxY - screen.safeAreaInsets.top
+                return screen.visibleFrame.intersection(CGRect(x: screen.frame.minX, y: screen.frame.minY,
+                    width: screen.frame.width, height: safeTop - screen.frame.minY))
+            },
+            scale: screen?.backingScaleFactor ?? 1) else { return false }
+        if panel.frame != frame { panel.setFrame(frame, display: true) }
+        if panel.isVisible { updateContrast(window: window, panelX: frame.minX) }
+        return true
     }
 
     private func showPanelBehindCodex(for application: NSRunningApplication) {
@@ -1037,7 +1080,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel.orderOut(nil)
             return
         }
-        positionPanel(for: window)
+        guard positionPanel(for: window) else { panel.orderOut(nil); return }
         let overlayIsBehindCodex = window.overlayOrderIndex.map { $0 > window.orderIndex } ?? false
         if !panel.isVisible || !overlayIsBehindCodex {
             panel.order(.below, relativeTo: Int(window.id))
@@ -1060,27 +1103,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             (item[kCGWindowNumber as String] as? NSNumber)?.intValue == panelWindowNumber
         }
         return info.enumerated().compactMap { orderIndex, item -> TrackedWindow? in
-            guard let owner = item[kCGWindowOwnerName as String] as? String,
-                  ["ChatGPT", "Codex"].contains(owner),
-                  let ownerPID = item[kCGWindowOwnerPID as String] as? NSNumber,
+            guard let ownerPID = item[kCGWindowOwnerPID as String] as? NSNumber,
                   ownerPID.int32Value == processIdentifier,
                   (item[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
                   let windowNumber = item[kCGWindowNumber as String] as? NSNumber,
                   let dictionary = item[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: dictionary),
-                  rect.width > 500, rect.height > 300 else { return nil }
+                  rect.width >= 328, rect.height >= 200 else { return nil }
             return TrackedWindow(
                 bounds: rect,
                 id: CGWindowID(windowNumber.uint32Value),
                 orderIndex: orderIndex,
                 overlayOrderIndex: overlayOrderIndex
             )
-        }.max { $0.bounds.width * $0.bounds.height < $1.bounds.width * $1.bounds.height }
+        }.first
     }
 
     private func updateContrast(window: TrackedWindow, panelX: CGFloat) {
         guard !contrastSamplePending,
-              Date().timeIntervalSince(lastContrastSample) >= 1.5 else { return }
+              Date().timeIntervalSince(lastContrastSample) >= 3 else { return }
         lastContrastSample = Date()
 
         let fallback = fallbackDarkAppearance()
@@ -1102,7 +1143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let filter = SCContentFilter(desktopIndependentWindow: target)
             let configuration = SCStreamConfiguration()
             configuration.sourceRect = CGRect(
-                x: panelX - window.bounds.minX + self.overlayWidth / 2 - 6,
+                x: max(0, min(window.bounds.width - 12, panelX - window.bounds.minX + self.overlayWidth / 2 - 6)),
                 y: 5,
                 width: 12,
                 height: 12
@@ -1215,18 +1256,6 @@ if CommandLine.arguments.contains("--benchmark-network") {
     monitor.stop()
     print("network samples: \(sampleCount)")
     exit(sampleCount > 0 ? 0 : 1)
-}
-
-if CommandLine.arguments.contains("--benchmark-connectivity") {
-    let benchmark = TLSProbeBenchmark()
-    for second in [0.0, 4.0, 8.0] {
-        Timer.scheduledTimer(withTimeInterval: second + 0.1, repeats: false) { _ in
-            benchmark.startAttempt()
-        }
-    }
-    RunLoop.current.run(until: Date().addingTimeInterval(12))
-    print("TLS probe successes: \(benchmark.successes), failures: \(benchmark.failures)")
-    exit(benchmark.successes >= 2 ? 0 : 1)
 }
 
 let app = NSApplication.shared

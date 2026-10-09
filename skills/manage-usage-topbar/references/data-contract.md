@@ -3,10 +3,10 @@
 The overlay uses the Codex app-server JSONL protocol:
 
 - Request: `account/rateLimits/read`
-- Update notification: `account/rateLimits/updated`
+- Periodic reads are authoritative; unsolicited update notifications cannot replace the selected bucket or satisfy a pending read.
 - Fields rendered: `primary.usedPercent`, `secondary.usedPercent`, window durations, reset timestamps, and `credits.balance`.
 
-Remaining percentage is calculated as `100 - usedPercent`. The bar uses the most constrained available window so it never overstates usable capacity.
+Only the `codex` bucket or compatible legacy default is accepted; unrelated model buckets are never substituted. Remaining percentage is calculated as `100 - usedPercent`. The bar uses the most constrained available window with its actual duration and matching reset time. Missing/invalid responses and connection failures render `--%`, not zero. Values must be finite and percentages are clamped to 0–100.
 
 Codex connectivity is driven by the authenticated 30-second rate-limit read. Green means that request succeeded, yellow means the app is checking, and red means the request failed or the local network path is unavailable. Generic internet or TLS reachability cannot set the indicator to green.
 
