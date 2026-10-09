@@ -26,6 +26,10 @@ jobs:
         run: python3 tests/run.py
       - name: Startup regressions
         run: python3 tests/run.py --startup
+      - name: Manual updater policy (no keys)
+        run: python3 tests/run-updater.py
+      - name: Package metadata guard (no signing)
+        run: python3 tests/test-update-package.py
       - name: Build and verify
         env:
           USAGE_TOPBAR_APP_OUTPUT: ${{ runner.temp }}/UsageTopbar.app

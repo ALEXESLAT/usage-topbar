@@ -4,19 +4,19 @@
 
 ## 从源码构建
 
-默认分支 `main` 已同步 0.4.0 发布源码及最新文档。**若要精确复现本次发布，请检出 `v0.4.0` 标签。**
+默认分支 `main` 已同步 0.5.0 发布源码及最新文档。**若要精确复现本次发布，请检出 `v0.5.0` 标签。**
 
 需要 Apple Silicon Mac、含 macOS 26 或更新 SDK 的 Xcode/Swift 工具链；回归测试还需要 Python 3。编译目标仍为 macOS 13+。
 
 ```sh
-git clone --branch v0.4.0 --depth 1 https://github.com/ALEXESLAT/usage-topbar.git
+git clone --branch v0.5.0 --depth 1 https://github.com/ALEXESLAT/usage-topbar.git
 cd usage-topbar
 scripts/usage-topbar.sh build
 python3 tests/run.py
 python3 tests/run.py --render /tmp/usage-topbar-previews
 ```
 
-构建产物位于 `${TMPDIR:-/private/tmp}/usage-topbar-dev/UsageTopbar.app`，仅包含 arm64；构建不会自动安装。源码、管理技能和测试也包含在 [插件包](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/usage-topbar-plugin-0.4.0.zip) 中。已发布包内文档保持发布时快照，最新说明以本仓库文档为准。
+构建产物位于 `${TMPDIR:-/private/tmp}/usage-topbar-dev/UsageTopbar.app`，仅包含 arm64；构建不会自动安装。源码、管理技能和测试也包含在 [插件包](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/usage-topbar-plugin-0.5.0.zip) 中。已发布包内文档保持发布时快照，最新说明以本仓库文档为准。
 
 ## 提交改动
 
@@ -31,3 +31,7 @@ CI 在标准 macOS 26 arm64 runner 上运行模拟回归、构建、架构/签�
 采用 [MIT 许可证](LICENSE)，版权署名 © 2026 ALEXESLAT。使用、修改或分发时须保留版权和许可声明；第三方内容仍遵循其原有许可。
 
 [使用指南](docs/USAGE.md) · [返回主页](README.md)
+
+## 更新器维护
+
+构建现在需要 Python 3 和 HTTPS 访问 GitHub 来取得固定 Sparkle 2.10.0；缓存可由 `USAGE_TOPBAR_DEPENDENCY_CACHE` 指定。`python3 tests/run-updater.py` 不生成密钥。框架及外部组件许可随 app 保留。密钥与发布边界见[更新开发说明](docs/UPDATES.md)。

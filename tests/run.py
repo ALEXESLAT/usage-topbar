@@ -7,7 +7,7 @@ source=root/'src/UsageTopbar.swift'
 if not source.exists(): source=root/'UsageTopbar.swift'
 with tempfile.TemporaryDirectory(prefix='usage-topbar-tests-') as temp:
  work=Path(temp)
- declarations=source.read_text().split('if let index = CommandLine.arguments.firstIndex(of: "--render-preview")')[0]
+ declarations=(root/'src/OverlayPreferences.swift').read_text()+'\n'+(root/'src/AppUpdater.swift').read_text()+'\n'+source.read_text().split('if let index = CommandLine.arguments.firstIndex(of: "--render-preview")')[0]
  render_dir = Path(sys.argv[2]).resolve() if len(sys.argv)>2 and sys.argv[1]=='--render' else None
  test_source = 'RenderTests.swift' if render_dir else ('StartupTests.swift' if '--startup' in sys.argv else 'RegressionTests.swift')
  (work/'main.swift').write_text(declarations+'\n'+(root/'tests'/test_source).read_text())

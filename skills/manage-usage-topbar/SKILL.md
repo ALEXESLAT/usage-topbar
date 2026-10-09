@@ -5,7 +5,7 @@ description: Start, stop, preview, rebuild, or inspect the local Usage Topbar ma
 
 # Manage Usage Topbar
 
-Use the deterministic controller at `scripts/control.sh`. The current release is 0.4.0 (20), for Apple Silicon / macOS 13+. See [installation and usage](../../docs/USAGE.md).
+Use the deterministic controller at `scripts/control.sh`. The current release is 0.5.0 (24), for Apple Silicon / macOS 13+. See [installation and usage](../../docs/USAGE.md).
 
 ## Authorized monitoring scope
 
@@ -36,3 +36,9 @@ Prefer `demo` for validation because it uses generated sample percentages. `prev
 If `start` reports a missing installed app, follow the installation guide; rebuilding alone will not install it. For other failures, inspect `status` and report the exact error without treating an inspection failure as stopped. `stop` terminates every process named UsageTopbar; prefer the individual instance menu when closing only a demo. Do not patch or replace the Codex/ChatGPT desktop app.
 
 Launch at login is an optional menu setting, off by default. Only a user click registers or unregisters SMAppService.mainApp. Read the actual service status; do not enable it or approve system prompts on the user’s behalf.
+
+## Manual updater boundary
+
+0.5.0 includes the signed production Sparkle updater, invoked only by the menu. Older 0.4.0 installations need one manual upgrade. Download and installation/relaunch require user consent. Existing login-item state and persistent visibility preferences are retained. GitHub/CDN receives ordinary update-request metadata, never account/usage/card data. The app is ad-hoc signed and not notarized; stop at system security blocks, never remove quarantine or disable Gatekeeper. There is no automatic health rollback.
+
+The verification public key is in source; the private key stays in the maintainer Keychain. Key generation/export and publication require explicit authorization. Never create temporary signing keys. Building does not install or publish. See the [update guide](../../docs/UPDATES.en.md).

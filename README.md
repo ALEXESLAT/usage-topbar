@@ -4,9 +4,9 @@
 
 为 Apple Silicon Mac 打造的液态玻璃风格轻量工具：把 Codex 剩余额度、周期、重置倒计时、points 和整机网速放在窗口边缘与菜单栏。
 
-**当前版本：0.4.0（build 20） · Apple Silicon（arm64） · macOS 13+**
+**当前版本：0.5.0（build 24） · Apple Silicon（arm64） · macOS 13+**
 
-[下载 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.dmg) · [下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.4.0) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/ALEXESLAT/usage-topbar/issues)
+[下载 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) · [下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.5.0) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/ALEXESLAT/usage-topbar/issues)
 
 ![Usage Topbar 匿名演示](assets/previews/usage-topbar-0.4.0.png)
 
@@ -19,13 +19,12 @@
 - 显示整机上下行速率。未知额度显示 `--%`，有效零值显示 `0%`。
 - macOS 26+ 使用原生 Liquid Glass，较早系统使用 SwiftUI 材质。
 
-## 0.4.0 新变化
+## 0.5.0
 
-- 紧凑浮窗：百分比整体居中，pts 对齐百分比实际左缘，卡片信息在上、网速在下，菜单栏使用 Codex 标志。
-- 使用真实重置时间计算倒计时；显示可用重置卡数量及最近到期日期 `Exp. MM/dd`，资料缺失显示 `--`。
-- 首次获取和断联恢复时，数字与进度条同步以约 0.8 秒先快后慢地到达实际值；普通刷新不重播，适配减少动态效果。
-- 打开即开始已披露范围的监控，取消每次启动确认；可选开机自启，新用户默认关闭，保留已有系统状态。
-- 后台及手动隐藏时改为每秒保底检查；前台与空间不足自动隐藏仍每 0.2 秒检查，事件立即唤醒。显示去重和字体测量缓存减少重复工作。
+- 新增菜单“检查更新…”，使用 Sparkle 2.10.0 获取正式签名清单，下载经验证的新版并由用户确认安装、重启。
+- 默认不自动检查、下载或安装，不强制重启，不发送系统画像。
+- 保存手动显示/隐藏浮层的选择；重启和后续更新保持偏好，已有开机自启状态不变。
+- 冻结快照签名、精确身份/版本校验，以及发布前后 ZIP/feed/摘要一致性检查。
 
 ## 开始使用
 
@@ -44,3 +43,6 @@
 已完成本机模拟回归、构建与渲染；旧系统、物理多屏/刘海组合和真实账户长时间运行尚未实机覆盖。采用 [MIT 许可证](LICENSE)，版权署名 © 2026 ALEXESLAT。
 
 > 本程序及文档由人工智能编写。
+
+
+0.4.0 用户须手动安装一次 0.5.0，此后使用菜单“检查更新…”。没有自动健康回滚；详见[更新流程与限制](docs/UPDATES.md)。

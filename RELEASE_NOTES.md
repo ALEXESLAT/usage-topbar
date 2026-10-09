@@ -1,30 +1,22 @@
-# Usage Topbar 0.4.0
+# Usage Topbar 0.5.0
 
-**简体中文** · [English](RELEASE_NOTES.en.md)
+[English](RELEASE_NOTES.en.md)
 
-**0.4.0 (build 20) · Apple Silicon (arm64) · macOS 13+**
+**0.5.0（build 24）· Apple Silicon / macOS 13+**
 
-- 紧凑浮窗：百分比整体居中，pts 对齐百分比实际左缘，卡片信息在上、网速在下，菜单栏使用 Codex 标志。
-- 使用真实重置时间计算倒计时；显示可用重置卡数量及最近到期日期 `Exp. MM/dd`，资料缺失显示 `--`。
-- 首次获取和断联恢复时，数字与进度条同步以约 0.8 秒先快后慢地到达实际值；普通刷新不重播，适配减少动态效果。
-- 打开即开始已披露范围的监控，取消每次启动确认；可选开机自启，新用户默认关闭，保留已有系统状态。
-- 后台及手动隐藏时改为每秒保底检查；前台与空间不足自动隐藏仍每 0.2 秒检查，事件立即唤醒。显示去重和字体测量缓存减少重复工作。
+- 新增菜单“检查更新…”，使用 Sparkle 2.10.0 获取正式签名清单，下载经验证的新版并由用户确认安装、重启。
+- 默认不自动检查、下载或安装，不强制重启，不发送系统画像。
+- 保存手动显示/隐藏浮层的选择；重启和后续更新保持偏好，已有开机自启状态不变。
+- 冻结快照签名、精确身份/版本校验，以及发布前后 ZIP/feed/摘要一致性检查。
 
-- [DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.dmg)
-- [ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.zip)
-- [Plugin / source](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/usage-topbar-plugin-0.4.0.zip)
-- [SHA-256](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/SHA256SUMS.txt)
+**0.4.0 用户需手动安装一次本版**，随后可通过正式签名清单更新。应用内更新需用户确认，不强制重启。原有开机自启状态保留，新用户默认关闭。
 
-更新前先退出旧版，将应用放入 `/Applications`。需要已登录且提供 app-server 的 Codex/ChatGPT。打开即开始已披露范围的监控，不再要求每次启动确认。
+**ad-hoc 签名、未经过 Apple 公证。** 浏览器下载带 quarantine 时，Gatekeeper 可能拦截；实际隔离下载评估已观察到拒绝。不能保证其他 Mac 首次打开顺畅，不提供安全绕过步骤。
 
-本版 **ad-hoc 签名，未经过 Apple 公证**，不支持 Intel。首次运行遵循 macOS 单应用许可提示，不关闭 Gatekeeper。
+[DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) · [ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip) · [插件/源码](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/usage-topbar-plugin-0.5.0.zip) · [SHA-256](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/SHA256SUMS.txt)
 
-验证：本机 arm64 优化构建、合成额度/卡片/倒计时/连接/布局回归、启动与恢复动画/自启控制器测试、明暗及 1×/2× 合成渲染；打包时核对版本、签名和校验和。此前同一功能源码的安装测试覆盖普通重复打开、退出清理和实时启动；发布安装另行核对版本与运行状态。
+验证包括合成回归、启动、更新策略、元数据、嵌套签名及最终产物验签；隔离真实应用已完成标准 UI、HTTPS/CDN 升级与设置保留。受控下载重试、安装替换失败保留旧包及手动备份恢复已测。**没有自动健康回滚**；Developer ID、公证、全新 Mac、真实登录重启、任意磁盘故障和所有标准 UI 分支未验证。
 
-限制：减少动态效果、断联、无录屏权限及自启注册主要使用合成测试；未执行重启登录、旧系统、物理多屏/刘海组合或长期电池测试。不宣称全应用节能比例，不支持可靠的跨进程卡片消费检测，不兑换真实卡。
+正式身份和 main feed 不含测试替换；不使用模拟账户。继续沿用已有登录读取额度/卡，仅本机处理整机网速、窗口位置和已有录屏权限下的小区域明暗。无权限降级，不新增权限、不存截图、不识别文字、不兑换卡。退出停止请求与采样。
 
-使用现有登录读取 OpenAI 额度/卡信息；本机计算整机网速、窗口位置和已有权限时的极小区域明暗。无权限时降级，不主动请求新权限、不做 OCR、不保存截图；退出停止请求和采样。
-
-[安装与隐私](docs/USAGE.md) · [更新记录](CHANGELOG.md)
-
-> 本程序及文档由人工智能编写。
+[更新流程与验证边界](docs/UPDATES.md) · [使用与隐私](docs/USAGE.md)

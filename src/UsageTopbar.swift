@@ -737,7 +737,7 @@ final class RateLimitClient {
             pendingID = 1
             armResponseTimeout()
             send(["method": "initialize", "id": 1, "params": [
-                "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.4.0"],
+                "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.5.0"],
                 "capabilities": ["experimentalApi": true]
             ]])
         } catch {
@@ -1431,16 +1431,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var lastContrastSample = Date.distantPast
     private var currentDarkBackground: Bool?
     private var contrastSamplePending = false
+    private let preferences = OverlayPreferences()
     private var userHidden = false
     private var sleeping = false
     private let loginItemController = LoginItemController()
     private var loginItemMenu: NSMenuItem?
+    @MainActor private lazy var appUpdater = AppUpdateController.production()
     private var didStart = false
     private var isTerminating = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !didStart else { return }
         didStart = true
+        userHidden = preferences.userHidden
         configureApplicationIcon()
         configureStatusItem()
         configurePanel()
@@ -1502,6 +1505,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         loginItemMenu = menu.addItem(withTitle: "开机自启", action: #selector(toggleLoginItem), keyEquivalent: "")
         menu.delegate = self
         updateLoginItemMenu()
+        menu.addItem(withTitle: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "")
         menu.addItem(withTitle: "退出 Usage Topbar", action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
         statusItem.menu = menu
@@ -1847,10 +1851,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         overlayModel.isDarkBackground = isDarkBackground
     }
 
+    @MainActor @objc private func checkForUpdates() { appUpdater.checkForUpdates() }
     @objc private func refreshNow() { rateClient?.refresh() }
     @objc private func togglePanel() {
         // Keep manual intent separate from automatic hiding caused by window geometry.
-        userHidden = panel.isVisible
+        userHidden.toggle()
+        if !CommandLine.arguments.contains("--mock") { preferences.userHidden = userHidden }
         synchronizePanelVisibility()
     }
     @objc private func quit() { NSApp.terminate(nil) }

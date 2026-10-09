@@ -2,20 +2,20 @@
 
 **简体中文** · [English](USAGE.en.md)
 
-本文适用于 **0.4.0（20）**，仅支持 Apple Silicon（arm64）、macOS 13+。[返回项目介绍](../README.md) · [发布下载](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.4.0)
+本文适用于 **0.5.0（24）**，仅支持 Apple Silicon（arm64）、macOS 13+。[返回项目介绍](../README.md) · [发布下载](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.5.0)
 
 ## 安装与更新
 
 1. 安装并登录 Codex/ChatGPT 桌面应用，确保其提供可用的 Codex app-server。
-2. 下载 [arm64 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.dmg) 或 [arm64 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.zip)。更新时先在 Usage Topbar 菜单栏菜单中退出旧版。
+2. 下载 [arm64 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) 或 [arm64 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip)。更新时先在 Usage Topbar 菜单栏菜单中退出旧版。
 3. 将 `UsageTopbar.app` 放入 `/Applications`。不要直接把 DMG 内的应用作为长期运行副本。
 4. 打开应用。首次可能出现 macOS 开发者验证提示：本版为 ad-hoc 签名、未公证。核实来源后遵循系统的单应用打开提示，不关闭 Gatekeeper，不修改全局安全设置。
 5. 本版打开即开始已授权范围的监控，不再显示启动确认。不会自动添加登录项、获取新凭证或自动申请系统权限；退出即停止采样和请求。
 
-下载校验：在下载目录执行下列命令，将结果与发布页 [SHA256SUMS.txt](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/SHA256SUMS.txt) 中同名文件的一行比较。
+下载校验：在下载目录执行下列命令，将结果与发布页 [SHA256SUMS.txt](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/SHA256SUMS.txt) 中同名文件的一行比较。
 
 ```sh
-shasum -a 256 UsageTopbar-0.4.0-macOS-arm64.dmg
+shasum -a 256 UsageTopbar-0.5.0-macOS-arm64.dmg
 ```
 
 无需输入 API key，也无需向 Usage Topbar 复制账号凭据。应用会尝试已注册的 Codex/ChatGPT 安装位置及常见 CLI 路径；找不到时显示 `Codex not found`。
@@ -36,7 +36,7 @@ shasum -a 256 UsageTopbar-0.4.0-macOS-arm64.dmg
 
 ## 管理命令
 
-以下命令从 `v0.4.0` 源码或插件包的根目录执行。`start` 和 `demo` 使用 **已安装在 `/Applications/UsageTopbar.app` 的版本**。
+以下命令从 `v0.5.0` 源码或插件包的根目录执行。`start` 和 `demo` 使用 **已安装在 `/Applications/UsageTopbar.app` 的版本**。
 
 ```sh
 scripts/usage-topbar.sh status
@@ -92,6 +92,8 @@ Issues 是公开的。不要提交账号凭据、API key、访问令牌、个人
 
 Usage Topbar 自身不持久化这些数据或凭据。退出时停止监控；Codex 自身的数据处理由其设置决定。
 
-最低系统声明为 macOS 13，macOS 26+ 使用 Liquid Glass，较早受支持系统使用 SwiftUI 材质。已验证范围与未覆盖项目见 [发布说明](../RELEASE_NOTES.md)。Intel Mac 不在 0.4.0 支持范围内。
+最低系统声明为 macOS 13，macOS 26+ 使用 Liquid Glass，较早受支持系统使用 SwiftUI 材质。已验证范围与未覆盖项目见 [发布说明](../RELEASE_NOTES.md)。Intel Mac 不在 0.5.0 支持范围内。
 
 - 菜单中的“开机自启”默认关闭，仅在用户点击时向 macOS 注册登录项；待系统批准时显示对应状态，不自动批准。再次点击可取消注册。
+
+0.4.0 用户须手动安装一次 0.5.0，随后通过“检查更新…”获取正式签名更新。需确认下载与安装重启；保存手动显隐，不改变已有自启。没有自动健康回滚，详见[更新说明](UPDATES.md)。

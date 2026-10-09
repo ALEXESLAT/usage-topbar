@@ -4,19 +4,19 @@
 
 ## Build from source
 
-The default branch `main` now contains the 0.4.0 release source and current documentation. **Check out the `v0.4.0` tag to reproduce this exact release.**
+The default branch `main` now contains the 0.5.0 release source and current documentation. **Check out the `v0.5.0` tag to reproduce this exact release.**
 
 Use an Apple Silicon Mac and an Xcode/Swift toolchain with the macOS 26 SDK or newer. Regression tests additionally require Python 3. The app's deployment target remains macOS 13+.
 
 ```sh
-git clone --branch v0.4.0 --depth 1 https://github.com/ALEXESLAT/usage-topbar.git
+git clone --branch v0.5.0 --depth 1 https://github.com/ALEXESLAT/usage-topbar.git
 cd usage-topbar
 scripts/usage-topbar.sh build
 python3 tests/run.py
 python3 tests/run.py --render /tmp/usage-topbar-previews
 ```
 
-The arm64 app is written to `${TMPDIR:-/private/tmp}/usage-topbar-dev/UsageTopbar.app`. Building does not install it. Source, management skills, and tests are also included in the [plugin package](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/usage-topbar-plugin-0.4.0.zip). Package documentation remains the release-time snapshot; this repository carries the updated guides.
+The arm64 app is written to `${TMPDIR:-/private/tmp}/usage-topbar-dev/UsageTopbar.app`. Building does not install it. Source, management skills, and tests are also included in the [plugin package](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/usage-topbar-plugin-0.5.0.zip). Package documentation remains the release-time snapshot; this repository carries the updated guides.
 
 ## Propose a change
 
@@ -31,3 +31,7 @@ Use [Releases](https://github.com/ALEXESLAT/usage-topbar/releases) for official 
 Licensed under the [MIT License](LICENSE). Copyright © 2026 ALEXESLAT. Preserve the copyright and license notices when using, modifying, or distributing the software. Third-party content retains its original terms.
 
 [Usage guide](docs/USAGE.en.md) · [Home](README.en.md)
+
+## Updater maintenance
+
+Builds now need Python 3 and HTTPS access to GitHub for pinned Sparkle 2.10.0. Set `USAGE_TOPBAR_DEPENDENCY_CACHE` to choose the cache. `python3 tests/run-updater.py` creates no keys. The app includes the upstream framework and external-component licenses. See [update development boundaries](docs/UPDATES.en.md).

@@ -2,20 +2,20 @@
 
 **English** · [简体中文](USAGE.md)
 
-This guide covers **0.4.0 (20)** for Apple Silicon (arm64), macOS 13+. [Project overview](../README.en.md) · [Downloads](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.4.0)
+This guide covers **0.5.0 (24)** for Apple Silicon (arm64), macOS 13+. [Project overview](../README.en.md) · [Downloads](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.5.0)
 
 ## Install or update
 
 1. Install and sign in to the Codex/ChatGPT desktop application, with a usable Codex app-server.
-2. Download the [arm64 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.dmg) or [arm64 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/UsageTopbar-0.4.0-macOS-arm64.zip). When updating, quit the previous instance from its menu-bar menu first.
+2. Download the [arm64 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) or [arm64 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip). When updating, quit the previous instance from its menu-bar menu first.
 3. Place `UsageTopbar.app` in `/Applications`. Do not use the app inside a mounted DMG as your permanent installation.
 4. Open the app. This release is ad-hoc signed and not notarized, so macOS may display a developer-verification warning. Verify the source and follow the system's per-app opening prompts. Do not disable Gatekeeper or change global security settings.
 5. The release starts the authorized monitoring immediately without a launch dialog. It adds no login item automatically, credentials, or system permissions; quitting stops sampling and requests.
 
-To check your download, run the following in the download folder and compare the result with the same filename in [SHA256SUMS.txt](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.4.0/SHA256SUMS.txt).
+To check your download, run the following in the download folder and compare the result with the same filename in [SHA256SUMS.txt](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/SHA256SUMS.txt).
 
 ```sh
-shasum -a 256 UsageTopbar-0.4.0-macOS-arm64.dmg
+shasum -a 256 UsageTopbar-0.5.0-macOS-arm64.dmg
 ```
 
 No API key or copied account credentials are needed. The app checks registered Codex/ChatGPT application locations and common CLI paths. If none is found, it displays `Codex not found`.
@@ -36,7 +36,7 @@ Initial reads and recovery fill from zero to the actual percentage over about 0.
 
 ## Management commands
 
-Run these from the `v0.4.0` source or plugin-package root. `start` and `demo` use **the version installed at `/Applications/UsageTopbar.app`**.
+Run these from the `v0.5.0` source or plugin-package root. `start` and `demo` use **the version installed at `/Applications/UsageTopbar.app`**.
 
 ```sh
 scripts/usage-topbar.sh status
@@ -92,6 +92,8 @@ Live mode reads Codex usage, reset times, and points; it calculates interface de
 
 Usage Topbar itself does not persist those data or credentials. Quitting stops monitoring; Codex's own data handling follows its settings.
 
-The minimum deployment target is macOS 13. Native Liquid Glass is used on macOS 26+, with SwiftUI material on earlier supported systems. See the [release notes](../RELEASE_NOTES.en.md) for tested and untested configurations. Intel Macs are not supported by 0.4.0.
+The minimum deployment target is macOS 13. Native Liquid Glass is used on macOS 26+, with SwiftUI material on earlier supported systems. See the [release notes](../RELEASE_NOTES.en.md) for tested and untested configurations. Intel Macs are not supported by 0.5.0.
 
 - Launch at login is off by default. The menu registers the macOS login item only when clicked; pending approval is shown without accepting system prompts. Click again to unregister.
+
+0.4.0 users must install 0.5.0 manually once, then use “Check for Updates…” with the signed production feed. Download/install/relaunch require consent. Visibility preferences persist; login-item state is unchanged. No automatic health rollback; see [update limits](UPDATES.en.md).

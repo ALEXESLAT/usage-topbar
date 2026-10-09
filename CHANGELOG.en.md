@@ -2,7 +2,14 @@
 
 **English** · [简体中文](CHANGELOG.md)
 
-The current public release is **[0.4.0 (20)](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.4.0)**. Historical platform support does not define current support.
+The current public release is **[0.5.0 (24)](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.5.0)**. Historical platform support does not define current support.
+
+## 0.5.0 (24) — 2026-10-09
+
+- Adds “Check for Updates…” through Sparkle 2.10.0: a signed production feed, verified downloads, and user-confirmed installation/relaunch.
+- No automatic checks, downloads or installation, forced restart, or system profiling.
+- Persists explicit overlay visibility across relaunches and updates; existing login-item state is preserved.
+- Frozen-snapshot signing, exact package identity/version checks, and final ZIP/feed/digest verification before and after publication.
 
 ## 0.4.0 (20) — 2026-10-09
 
