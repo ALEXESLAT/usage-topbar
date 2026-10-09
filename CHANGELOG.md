@@ -1,0 +1,28 @@
+# 更新记录
+
+当前公开版本为 **[0.3.1（19）](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.3.1)**。历史版本的平台范围不代表当前支持范围。
+
+## 0.3.1（19）— 2026-10-09
+
+- 仅支持 Apple Silicon（arm64），最低 macOS 13。
+- 未知/失败额度显示 `--%`；只选择 Codex 额度桶，周期及重置时间与最受限额度对应。
+- 增加初始化和读取超时恢复、响应匹配、受限重试及睡眠唤醒恢复。
+- 处理显示器二维位置、缩放和安全区域；窗口顶部空间不足时通过菜单栏保底。
+- 按实际时间和独立网卡基线计算速率，减少切网卡、计数回绕及睡眠后的异常读数。
+- 添加不读取真实账号数据的回归测试。详细验证边界见 [发布说明](RELEASE_NOTES.md)。
+
+本次文档更新发生在发布后，未重新打包或替换附件；包内文档仍为发布时快照。
+
+## 0.3.0（18）— 已保留的历史标签，未创建 release
+
+[源码标签](https://github.com/ALEXESLAT/usage-topbar/tree/v0.3.0) 在支持范围调整前已推送，包含当时的双架构构建配置。为保留标签历史，正式的 Apple Silicon-only 发布顺延为 0.3.1。请下载 0.3.1，不把 0.3.0 标签视为已交付安装包。
+
+## 0.2.6（17）— 2026-10-09
+
+[历史发布](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.2.6)：汇总 0.2.5 开发成果及连接、窗口层级修复。该历史发布曾提供 universal DMG 和 arm64 ZIP；当前 0.3.1 已限定 arm64。
+
+## 更早版本
+
+- 0.2.5（16）：开发分支及本地交付版本，没有同名 GitHub release；成果已纳入后续发布。
+- [0.2.3](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.2.3)：历史 arm64 发布，改进窗口依附、前台可见性及层级。
+- [0.2.1](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.2.1)、[0.2.0](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.2.0)：保留原发布说明和附件供追溯。
