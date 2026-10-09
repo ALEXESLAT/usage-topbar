@@ -1,85 +1,83 @@
 # Usage Topbar
 
-Usage Topbar is a compact native macOS edge tab that keeps Codex usage visible immediately above the window's traffic-light controls without covering the window itself. When no safe space remains above the window, the overlay hides and the compact menu-bar indicator remains available.
+为 Apple Silicon Mac 打造的液态玻璃风格轻量工具：把 Codex 剩余额度、周期、重置倒计时、points 和整机网速放在窗口边缘与菜单栏。
 
-> **AI-generated software:** This program and its documentation were written by artificial intelligence.
->
-> **AI 生成声明：** 本程序及其文档由人工智能编写。
+A lightweight, liquid-glass-style Codex usage companion for Apple Silicon Macs. Native Liquid Glass on macOS 26+; SwiftUI material fallback on earlier supported systems.
 
-![Usage Topbar preview](assets/usage-topbar-preview.png)
+**当前版本：0.3.1（build 19） · Apple Silicon（arm64） · macOS 13+**
 
-## Features
+[下载 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.dmg) · [下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.3.1) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md)
 
-- Live remaining usage: reads the authenticated Codex rate-limit state every 30 seconds and displays the most constrained Codex window with its matching reset time. Missing or failed reads show `--%`, never a fabricated zero.
-- Codex connectivity indicator: green means the authenticated Codex rate-limit request succeeded, yellow means it is checking, and red means that request failed or the local network path is unavailable. Generic internet reachability does not override this state.
-- Low-overhead system throughput: reads cumulative byte counters from active external network interfaces and shows compact download/upload rates beneath the separate `CODEX` status. Sampling adapts from two seconds on external power to five seconds on battery or in Low Power Mode, without inspecting destinations or traffic contents.
-- Compact progress display: combines a color-coded progress bar, remaining percentage, window duration, points balance, and next reset time in a two-line layout that does not truncate the reset countdown.
-- SwiftUI liquid-glass appearance: uses SwiftUI's official `glassEffect(.regular)` on macOS 26 and a SwiftUI material fallback on earlier supported systems.
-- Adaptive readability: samples only the average brightness of a tiny 12 x 12 px title-bar region and automatically switches between dark and light text.
-- Window-attached positioning: follows the main Codex/ChatGPT window, places its 52 pt information area above the upper-left edge, and extends a rounded section 22 pt behind the window so the attachment remains seamless through the window corner.
-- Codex-aware visibility and stacking: appears only while Codex is in the foreground and is ordered directly below the tracked Codex window instead of covering it or other apps.
-- Status-bar controls: refresh immediately, show or hide the overlay, or quit from the macOS menu bar.
-- Privacy-first operation: usage snapshots, window geometry, color samples, and screenshots are kept in memory and are not written to disk.
+![使用生成数据的界面示意图](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/usage-topbar-preview.png)
 
-## 功能概览
+> 本程序及文档由人工智能编写。The software and documentation were written by artificial intelligence.
 
-Usage Topbar 是一款原生 macOS Codex 用量浮层。它吸附在 Codex 窗口左上边缘，在红黄绿信号灯上方显示剩余百分比、周期、points 和重置时间；下方 22 pt 隐藏在 Codex 窗口后面，并且仅在 Codex 位于前台时显示。
+## 可以做什么
 
-## Requirements
+- 每 30 秒读取已登录 Codex 的用量，显示最受限周期的剩余百分比、周期长度及其重置时间。
+- 浮层跟随前台 Codex/ChatGPT 窗口的左上边缘，位于该窗口后方；其他应用在前台时隐藏。上方空间不足时隐藏浮层，通过菜单栏查看。
+- 用 `CODEX` 指示灯显示用量请求状态；下方上下行速率是整机所选外部网卡的吞吐，不是 Codex 专属流量。
+- 从菜单栏立即刷新、显示/隐藏浮层或退出。睡眠时暂停监控，唤醒后重新连接。
+- macOS 26+ 使用 Liquid Glass；较早的受支持系统使用 SwiftUI 材质。多屏位置、缩放及安全区域采用系统提供的尺寸。
 
-- Apple Silicon Mac (M-series; arm64 only)
-- macOS 13 or later
-- ChatGPT/Codex desktop environment with an authenticated Codex app-server
+## 安装
 
-## Install the macOS app
+1. 确认使用 Apple Silicon（M 系列）Mac、macOS 13 或更高版本，并已安装、登录可提供 app-server 的 Codex/ChatGPT 桌面应用。**不支持 Intel Mac。**
+2. 下载上方 DMG，将 `UsageTopbar.app` 拖入“应用程序”。ZIP 用户解压后同样移动到 `/Applications`。
+3. 打开应用，阅读本次启动的数据说明，选择“启动”后才开始实时读取；选择“取消”则退出。无需把账号凭据填进 Usage Topbar。
 
-1. Download `UsageTopbar-0.3.1-macOS-arm64.dmg` from the release package.
-2. Open it and drag `UsageTopbar.app` to Applications.
-3. Open the app and review the privacy disclosure before starting live mode.
+应用使用 **ad-hoc 签名，未经过 Apple 公证**。若 macOS 拦截首次打开，请先核实下载来源，再按系统提示处理该应用的打开许可。不要关闭 Gatekeeper 或降低全局安全设置。
 
-The app is ad-hoc signed and not notarized. macOS may require you to approve the first launch from System Settings.
+可用发布页的 [SHA256SUMS.txt](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/SHA256SUMS.txt) 核对下载文件。更新前先退出旧版，再替换“应用程序”内的应用。
 
-## Build
+## 如何读数
+
+| 显示 | 含义 |
+| --- | --- |
+| `0%`–`100%` | 最近一次有效读取的剩余额度；按最受限的可用 Codex 周期显示 |
+| `--%` | 正在初始化、离线、读取失败或数据不可用；不表示额度已经用完 |
+| `points --` | 未取得有效 points 余额 |
+| 绿 / 黄 / 红灯 | 用量请求成功 / 正在检查 / 请求失败或本地网络不可用；不是通用网速测试 |
+| `↓` / `↑` | 整机吞吐的近似速率；接电约 2 秒采样，电池或低电量模式约 5 秒采样 |
+
+正常刷新期间仍显示最近一次有效值；检测到失败后显示 `--%`。数值不是逐秒更新，也不代表任何模型请求一定能成功。完整操作、故障排查和隐私说明见 [使用指南](docs/USAGE.md)。
+
+## 从源码构建
+
+默认分支提供项目介绍。**构建本次发布请检出 `v0.3.1`；不要把默认分支当作发布源码。**
+
+需要 Apple Silicon Mac、含 macOS 26 或更新 SDK 的 Xcode/Swift 工具链；回归测试还需要 Python 3。编译目标仍为 macOS 13+。
 
 ```sh
+git clone --branch v0.3.1 --depth 1 https://github.com/ALEXESLAT/usage-topbar.git
+cd usage-topbar
 scripts/usage-topbar.sh build
-# Builds the supported Apple Silicon arm64 application.
-# Synthetic-only regression suite (requires Xcode command-line tools and Python 3):
 python3 tests/run.py
 python3 tests/run.py --render /tmp/usage-topbar-previews
 ```
 
-The built app is written to `${TMPDIR:-/private/tmp}/usage-topbar-dev/UsageTopbar.app`.
-This keeps temporary development bundles outside the project so Spotlight does
-not show duplicate installable copies. The canonical runnable copy belongs only
-at `/Applications/UsageTopbar.app`.
+构建产物位于 `${TMPDIR:-/private/tmp}/usage-topbar-dev/UsageTopbar.app`，仅包含 arm64；构建不会自动安装。源码、管理技能和测试也包含在 [插件包](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/usage-topbar-plugin-0.3.1.zip) 中。已发布包内文档保持发布时快照，最新说明以本仓库文档为准。
 
-## Controls
+## 数据与验证范围
 
-Use the menu-bar item to refresh, show or hide the overlay, or quit. Plugin management commands are available through:
+Usage Topbar 通过本地 Codex app-server 向 OpenAI 读取用量，在本机计算网卡计数增量及窗口位置。macOS 14+ 且已有屏幕录制权限时，最多每约 3 秒采样一个 12×12 点顶栏区域的平均明暗；否则使用系统外观，不主动申请该权限，不做 OCR。
 
-```sh
-skills/manage-usage-topbar/scripts/control.sh demo
-skills/manage-usage-topbar/scripts/control.sh status
-skills/manage-usage-topbar/scripts/control.sh build
-```
+Usage Topbar 自身不保存用量快照、凭据、网速统计、窗口几何、截图或颜色样本；OpenAI 接收用量请求及正常连接元数据。Codex 自身的存储和账户行为由其设置决定。
 
-Live start intentionally requires a per-launch privacy confirmation.
+在 Apple Silicon / macOS 27.2 上完成原生构建、合成回归与界面渲染：17 项额度、8 项布局、4 项网速断言和 7 类模拟服务生命周期场景通过；12 种明暗/缩放/数值状态渲染通过，安装包架构、版本、签名和校验和已核对。
 
-## Data and privacy
+**尚未实机覆盖旧版 macOS、物理多屏/刘海组合及真实账户长时间运行。** 仓库没有 GitHub Actions 工作流，不宣称 CI 已通过。签名与目标系统声明不等于所有机型均已验证。
 
-The app requests Codex rate-limit percentages, window durations, reset timestamps, and points balance from the local Codex app-server every 30 seconds. The result of that authenticated request drives the Codex connection indicator. It locally reads cumulative byte counters from active external network interfaces every two seconds on external power or every five seconds on battery/Low Power Mode to display whole-Mac throughput. It enumerates ChatGPT window geometry for positioning and, only when Screen Recording access is already available, calculates the average luminance of a 12 x 12 px title-bar sample. It reads no traffic contents, performs no OCR, and does not automatically request Screen Recording permission.
+## 代码语言
 
-No third party receives interface statistics, window geometry, or color samples. OpenAI receives the authenticated rate-limit read request and its normal connection metadata. The app does not persist usage data, connection results, network statistics, credentials, screenshots, or sampled colors.
+统计快照：**2026-10-09**。[GitHub 官方 languages 接口](https://api.github.com/repos/ALEXESLAT/usage-topbar/languages) 返回空对象：默认分支 `main` 当时只有 README，没有应用源码，因此官方暂无可展示的语言比例。文档更新不会将发布源码合并到默认分支，也未修改 `.gitattributes` 或 GitHub 的语言识别。
 
-## Version
+以下是 **`v0.3.1` 发布源码的补充统计，不是 GitHub 官方比例或实时徽章**：按 Git 跟踪的 `.swift`、`.sh`、`.py` 文件原始字节统计，包含项目自有测试，排除文档、图片和配置文件；总计 65,856 字节，未计入第三方代码。
 
-Current release: `0.3.1` (build 19)
+| 语言 | 字节 | 占源码字节比例 | 用途 |
+| --- | ---: | ---: | --- |
+| Swift | 60,435 | 91.77% | SwiftUI/AppKit 原生界面、额度与系统逻辑、Swift 回归及渲染测试 |
+| Shell | 2,940 | 4.46% | 构建、启动、状态检查和插件控制脚本 |
+| Python | 2,481 | 3.77% | 回归测试驱动、模拟 app-server |
 
-## Compatibility and verification
-
-The Apple Silicon app targets macOS 13+. Intel Macs are not supported. Supported systems earlier than macOS 26 use SwiftUI material; macOS 26+ use gated Liquid Glass APIs. Screen color sampling requires macOS 14+ and existing permission; otherwise system appearance is used. Display placement uses AppKit points, both display axes, safe/visible bounds, and the destination screen scale. Maximized/full-screen windows without 52 pt of space above them use the menu-bar fallback. macOS may hide menu-bar extras when its menu bar is overcrowded.
-
-Sleep suspends timers and the child service; wake reconnects and refreshes without reusing old percentages. Network counters use actual elapsed time and separate interface baselines. App-server initialization/read deadlines, request IDs, bounded buffers, and capped retry delays prevent hangs or stale replies from masquerading as current usage. No account or diagnostic data is written to disk.
-
-0.3.1 validation: native arm64 compilation for macOS 13, synthetic parser/geometry/network/lifecycle regressions, and offscreen UI rendering. See release notes for runtime test results and untested hardware/OS combinations. Compilation alone does not establish compatibility with every Mac.
+比例按代码字节计算，不是功能、运行时间或性能占比。当前发布源码没有 JavaScript；`.json`、`.plist`、`.yaml` 为配置，不计入本表。源码对应提交：[`8adcf5d`](https://github.com/ALEXESLAT/usage-topbar/tree/8adcf5dd25f8b089fe7206fe856bb80754345e5f)。
