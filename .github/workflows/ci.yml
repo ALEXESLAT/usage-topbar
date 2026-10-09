@@ -1,0 +1,45 @@
+name: macOS checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          xcodebuild -version
+          xcrun --show-sdk-version
+      - name: Mock regressions
+        run: python3 tests/run.py
+      - name: Build and verify
+        env:
+          USAGE_TOPBAR_APP_OUTPUT: ${{ runner.temp }}/UsageTopbar.app
+        run: |
+          scripts/build-overlay.sh
+          test "$(lipo -archs "$USAGE_TOPBAR_APP_OUTPUT/Contents/MacOS/UsageTopbar")" = arm64
+          codesign --verify --deep --strict "$USAGE_TOPBAR_APP_OUTPUT"
+          plutil -lint "$USAGE_TOPBAR_APP_OUTPUT/Contents/Info.plist"
+          ditto -c -k --keepParent "$USAGE_TOPBAR_APP_OUTPUT" "$RUNNER_TEMP/UsageTopbar-ci-arm64.zip"
+      - name: UI render cases
+        run: python3 tests/run.py --render "$RUNNER_TEMP/previews"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: check-build-and-previews-arm64
+          path: |
+            ${{ runner.temp }}/UsageTopbar-ci-arm64.zip
+            ${{ runner.temp }}/previews/*.png
+          retention-days: 7
+          if-no-files-found: error
