@@ -1,8 +1,8 @@
 # Usage Topbar
 
-为 Apple Silicon Mac 打造的液态玻璃风格轻量工具：把 Codex 剩余额度、周期、重置倒计时、points 和整机网速放在窗口边缘与菜单栏。
+**简体中文** · [English](README.en.md)
 
-A lightweight, liquid-glass-style Codex usage companion for Apple Silicon Macs. Native Liquid Glass on macOS 26+; SwiftUI material fallback on earlier supported systems.
+为 Apple Silicon Mac 打造的液态玻璃风格轻量工具：把 Codex 剩余额度、周期、重置倒计时、points 和整机网速放在窗口边缘与菜单栏。
 
 **当前版本：0.3.1（build 19） · Apple Silicon（arm64） · macOS 13+**
 
@@ -10,7 +10,7 @@ A lightweight, liquid-glass-style Codex usage companion for Apple Silicon Macs. 
 
 ![使用生成数据的界面示意图](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/usage-topbar-preview.png)
 
-> 本程序及文档由人工智能编写。The software and documentation were written by artificial intelligence.
+> 本程序及文档由人工智能编写。
 
 ## 可以做什么
 
@@ -44,7 +44,7 @@ A lightweight, liquid-glass-style Codex usage companion for Apple Silicon Macs. 
 
 ## 从源码构建
 
-默认分支提供项目介绍。**构建本次发布请检出 `v0.3.1`；不要把默认分支当作发布源码。**
+默认分支 `main` 已同步 0.3.1 发布源码及最新文档。**若要精确复现本次发布，请检出 `v0.3.1` 标签。**
 
 需要 Apple Silicon Mac、含 macOS 26 或更新 SDK 的 Xcode/Swift 工具链；回归测试还需要 Python 3。编译目标仍为 macOS 13+。
 

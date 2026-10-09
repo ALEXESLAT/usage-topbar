@@ -1,5 +1,7 @@
 # 更新记录
 
+**简体中文** · [English](CHANGELOG.en.md)
+
 当前公开版本为 **[0.3.1（19）](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.3.1)**。历史版本的平台范围不代表当前支持范围。
 
 ## 0.3.1（19）— 2026-10-09

@@ -1,0 +1,12 @@
+{
+  "interface": {
+    "display_name": "Manage Usage Topbar",
+    "short_description": "Start and inspect the local Codex usage overlay",
+    "icon_small": "./assets/icon-small.png",
+    "icon_large": "./assets/icon-large.png",
+    "default_prompt": "Use $manage-usage-topbar to start the local usage overlay."
+  },
+  "policy": {
+    "allow_implicit_invocation": true
+  }
+}
