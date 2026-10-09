@@ -70,6 +70,18 @@ Developer example for a custom CLI (the launch disclosure still appears):
 CODEX_BINARY="/absolute/path/to/codex" /Applications/UsageTopbar.app/Contents/MacOS/UsageTopbar
 ```
 
+## Uninstall
+
+Quit Usage Topbar from its menu-bar menu, then move `/Applications/UsageTopbar.app` to Trash. If you manually added it to system login items, remove that entry as well; the app does not register an automatic-start service itself.
+
+Removing Usage Topbar does not require deleting Codex/ChatGPT, signing out of those applications, or removing their account data. Do not delete Codex credentials, configuration, or history to uninstall this tool.
+
+## Report a problem
+
+Use [GitHub Issues](https://github.com/ALEXESLAT/usage-topbar/issues). Include the Usage Topbar version/build, macOS version, Apple Silicon model, whether an external display is connected, reproduction steps, expected versus actual behavior, and visible error text. A device serial number is not needed.
+
+Issues are public. Do not submit account credentials, API keys, access tokens, personal usage/balance snapshots, or unreviewed logs. Redact accounts, task contents, and other private information from screenshots; use a text description if you cannot safely redact them. There is no automatic diagnostic-upload feature.
+
 ## Privacy and compatibility
 
 Live mode reads Codex usage, reset times, and points; it calculates interface deltas and Codex window placement locally. On macOS 14+ with existing Screen Recording permission, it measures average luminance in a tiny title-bar region. It does not request permission automatically or perform OCR. OpenAI receives usage requests and normal connection metadata; interface statistics, window geometry, and color samples are not sent to third parties.

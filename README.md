@@ -6,7 +6,7 @@
 
 **当前版本：0.3.1（build 19） · Apple Silicon（arm64） · macOS 13+**
 
-[下载 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.dmg) · [下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.3.1) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md)
+[下载 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.dmg) · [下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.3.1) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/ALEXESLAT/usage-topbar/issues)
 
 ![使用生成数据的界面示意图](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/usage-topbar-preview.png)
 

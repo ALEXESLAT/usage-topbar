@@ -70,6 +70,18 @@ scripts/usage-topbar.sh build
 CODEX_BINARY="/absolute/path/to/codex" /Applications/UsageTopbar.app/Contents/MacOS/UsageTopbar
 ```
 
+## 卸载
+
+先从 Usage Topbar 菜单栏菜单退出应用，再将 `/Applications/UsageTopbar.app` 移到废纸篓。若自己曾把它加入系统登录项，请同时移除该条目；应用本身没有注册自动启动服务。
+
+卸载 Usage Topbar 不需要删除 Codex/ChatGPT、退出其账号或删除其账户数据。不要为卸载本工具清理 Codex 的凭据、配置和历史记录。
+
+## 反馈问题
+
+在 [GitHub Issues](https://github.com/ALEXESLAT/usage-topbar/issues) 报告问题。建议提供 Usage Topbar 版本/构建号、macOS 版本、Apple Silicon 型号、是否连接外部显示器、复现步骤、预期与实际结果，以及可见错误文字。不必提供设备序列号。
+
+Issues 是公开的。不要提交账号凭据、API key、访问令牌、个人用量/余额快照或未经检查的日志。截图前请遮蔽账号、任务内容及其他隐私；不能安全脱敏时，仅用文字描述即可。当前没有自动上传诊断数据的功能。
+
 ## 隐私与兼容性
 
 实时模式读取 Codex 用量、重置时间和 points，在本地计算网卡计数增量及 Codex 窗口位置。macOS 14+ 且已有屏幕录制权限时，对极小顶栏区域计算平均明暗；不主动请求权限、不做 OCR。用量请求和正常连接元数据发往 OpenAI，网卡统计、窗口几何和颜色样本不发给第三方。

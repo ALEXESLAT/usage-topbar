@@ -6,7 +6,7 @@ A lightweight, liquid-glass-style companion for Apple Silicon Macs. Keep Codex r
 
 **Current version: 0.3.1 (build 19) · Apple Silicon (arm64) · macOS 13+**
 
-[Download DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.dmg) · [Download ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.zip) · [Release](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.3.1) · [Installation and usage](docs/USAGE.en.md) · [Changelog](CHANGELOG.en.md)
+[Download DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.dmg) · [Download ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/UsageTopbar-0.3.1-macOS-arm64.zip) · [Release](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.3.1) · [Installation and usage](docs/USAGE.en.md) · [Changelog](CHANGELOG.en.md) · [Report a problem](https://github.com/ALEXESLAT/usage-topbar/issues)
 
 ![Interface illustration using generated demo data](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.3.1/usage-topbar-preview.png)
 
