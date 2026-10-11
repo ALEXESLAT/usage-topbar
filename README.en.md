@@ -21,13 +21,6 @@ See your remaining allowance at a glance while Codex is running, without clickin
 - Whole-Mac upload/download rates. Unknown usage shows `--%`; a valid zero shows `0%`.
 - Native Liquid Glass on macOS 26+, with SwiftUI material on earlier systems.
 
-## 0.5.0
-
-- Adds “Check for Updates…” through Sparkle 2.10.0: a signed production feed, verified downloads, and user-confirmed installation/relaunch.
-- No automatic checks, downloads or installation, forced restart, or system profiling.
-- Persists explicit overlay visibility across relaunches and updates; existing login-item state is preserved.
-- Frozen-snapshot signing, exact package identity/version checks, and final ZIP/feed/digest verification before and after publication.
-
 ## Get started
 
 1. Use an Apple Silicon Mac (macOS 13+) with a signed-in Codex/ChatGPT desktop app providing app-server.
@@ -35,6 +28,14 @@ See your remaining allowance at a glance while Codex is running, without clickin
 3. Open the app to start monitoring the documented data immediately, without an extra launch confirmation or API key entry.
 
 This release is **ad-hoc signed and not notarized by Apple**. macOS may block the first launch; see [installation, checksums, and troubleshooting](docs/USAGE.en.md). Intel Macs are unsupported.
+
+## Updates and settings
+
+- Install 0.5.0 manually once if upgrading from 0.4.0, then use “Check for Updates…”.
+- Updates use the signed production feed and verified downloads, with user-confirmed installation and relaunch. No automatic checks, downloads or installation, forced restart, or system profiling.
+- Explicit overlay visibility is saved; existing login-item state is preserved.
+
+Automatic health rollback is not implemented. See the [update guide](docs/UPDATES.en.md) for the update flow, release validation and recovery limits.
 
 ## More
 
@@ -45,6 +46,3 @@ Usage is read from OpenAI through the local Codex app-server. Interface statisti
 Local mock regressions, builds, and renders have been checked. Older systems, physical multi-display/notch setups, and prolonged real-account use remain untested on devices. Licensed under the [MIT License](LICENSE). Copyright © 2026 ALEXESLAT.
 
 > The software and documentation were written by artificial intelligence.
-
-
-0.4.0 users must install 0.5.0 manually once, then use “Check for Updates…”. Automatic health rollback is not implemented; see [update flow and limits](docs/UPDATES.en.md).
