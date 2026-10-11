@@ -4,6 +4,8 @@
 
 A lightweight, liquid-glass-style companion for Apple Silicon Macs. Keep Codex remaining usage, its limiting window, reset countdown, points, and whole-Mac throughput at the window edge and in the menu bar.
 
+See your remaining allowance at a glance while Codex is running, without clicking the avatar in the lower-left corner and opening a submenu to check it. Keeping this information in view can help ease anxiety about usage limits.
+
 **Current version: 0.5.0 (build 24) · Apple Silicon (arm64) · macOS 13+**
 
 [Download DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) · [Download ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip) · [Release](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.5.0) · [Installation and usage](docs/USAGE.en.md) · [Changelog](CHANGELOG.en.md) · [Report a problem](https://github.com/ALEXESLAT/usage-topbar/issues)
