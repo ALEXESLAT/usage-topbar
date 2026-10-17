@@ -45,7 +45,7 @@
 	<key>SURequireSignedFeed</key>
 	<true/>
 	<key>SUShowReleaseNotes</key>
-	<false/>
+	<true/>
 	<key>SUSignedFeedFailureExpirationInterval</key>
 	<integer>0</integer>
 	<key>SUVerifyUpdateBeforeExtraction</key>

@@ -34,6 +34,8 @@ jobs:
         run: |
           python3 tests/run-gradient.py
           python3 tests/run.py --gradient
+      - name: Offline acceptance persistence isolation
+        run: python3 tests/run-acceptance-storage.py
       - name: Release and Testing color feature parity (offscreen)
         run: python3 tests/run-release-config.py
       - name: History chart fixtures

@@ -110,3 +110,17 @@ for expanded in [false,true] {
  require(content.chart.curveGradient==palette && content.chart.points.contains{$0.gapBefore},"palette and gap retained with real store")
 }
 print("PASS both-config rendering: fixed horizontal palette, vertical endpoints/intermediate stop/scroll, no gap fill, real-store 4/7-day layouts; no foreground actions")
+
+let acceptanceRoot=URL(fileURLWithPath:"/private/tmp/UsageTopbar-Acceptance-"+UUID().uuidString,isDirectory:true)
+try FileManager.default.createDirectory(at:acceptanceRoot,withIntermediateDirectories:false)
+defer { try? FileManager.default.removeItem(at:acceptanceRoot) }
+let token=String(acceptanceRoot.lastPathComponent.dropFirst("UsageTopbar-Acceptance-".count))
+try (token+"\n").write(to:acceptanceRoot.appendingPathComponent("acceptance-marker"),atomically:true,encoding:.utf8)
+let isolated=try AcceptanceContext(root:acceptanceRoot)
+require(isolated.history.deletingLastPathComponent().path==acceptanceRoot.path,"history stays in explicit root")
+let isolatedPrefs=ProgressGradientPreferences(defaults:isolated.preferences)
+require(isolatedPrefs.save(palette),"offline preference save")
+let reopened=try AcceptanceContext(root:acceptanceRoot)
+require(ProgressGradientPreferences(defaults:reopened.preferences).load()==palette,"offline settings reopen from file")
+do { _=try AcceptanceContext(root:URL(fileURLWithPath:"/private/tmp"));preconditionFailure("unmarked root accepted") } catch {}
+print("PASS marked offline acceptance root validation and file preferences persistence")

@@ -25,6 +25,7 @@ enum UpdatePolicy {
         guard (info["SUSignedFeedFailureExpirationInterval"] as? NSNumber)?.doubleValue == 0 else {
             return "更新验证必须在失败时保持关闭。"
         }
+        guard info["SUShowReleaseNotes"] as? Bool == true else { return "更新说明显示未启用。" }
         guard let key = info["SUPublicEDKey"] as? String,
               let bytes = Data(base64Encoded: key), bytes.count == 32,
               bytes.contains(where: { $0 != 0 }) else {
@@ -32,6 +33,19 @@ enum UpdatePolicy {
         }
         return nil
         #endif
+    }
+
+    // All release facts belong to the authenticated appcast item, never to UI literals.
+    // Reject inconsistent/missing presentation data before Sparkle offers this update.
+    static func presentationProblem(version: String, displayVersion: String, download: URL?, notes: String?) -> String? {
+        guard let download, permits(version: version, installed: "0", download: download),
+              download.pathComponents.dropLast().last == "v" + displayVersion else {
+            return "未获取到一致的更新版本信息。当前应用保持不变，请稍后重试。"
+        }
+        guard let notes, !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return "未获取到此版本的更新说明。当前应用保持不变，请稍后重试。"
+        }
+        return nil
     }
 
     static func permits(version: String, installed: String, download: URL?) -> Bool {
@@ -130,6 +144,9 @@ final class SparkleUpdateEngine: NSObject, ManualUpdateEngine, SPUUpdaterDelegat
                                    installed: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "",
                                    download: item.fileURL) else {
             throw rejected("更新版本或下载来源不符合本应用要求。当前版本保持不变。")
+        }
+        if let problem = UpdatePolicy.presentationProblem(version: item.versionString, displayVersion: item.displayVersionString, download: item.fileURL, notes: item.itemDescription) {
+            throw rejected(problem)
         }
     }
     func updaterShouldPromptForPermissionToCheck(forUpdates updater: SPUUpdater) -> Bool { false }

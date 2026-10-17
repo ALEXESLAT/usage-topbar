@@ -50,10 +50,43 @@ struct ProgressGradientSettings: Codable, Equatable {
     }
 }
 
+protocol PreferenceStore {
+    func bool(forKey key: String) -> Bool
+    func data(forKey key: String) -> Data?
+    func set(_ value: Any?, forKey key: String)
+}
+extension UserDefaults: PreferenceStore {}
+
+// Explicit offline acceptance storage. No standard/defaults domain is consulted.
+final class FilePreferenceStore: PreferenceStore {
+    let file: URL
+    private var values: [String: Any]
+    init(file: URL) throws {
+        self.file = file
+        if FileManager.default.fileExists(atPath: file.path) {
+            guard file.resolvingSymlinksInPath() == file.standardizedFileURL else { throw CocoaError(.fileReadNoPermission) }
+            guard let decoded = try PropertyListSerialization.propertyList(from: Data(contentsOf: file), format: nil) as? [String: Any] else { throw CocoaError(.fileReadCorruptFile) }
+            values = decoded
+        } else { values = [:] }
+    }
+    func bool(forKey key: String) -> Bool { values[key] as? Bool ?? false }
+    func data(forKey key: String) -> Data? { values[key] as? Data }
+    func set(_ value: Any?, forKey key: String) {
+        var next = values; next[key] = value
+        do {
+            guard file.resolvingSymlinksInPath() == file.standardizedFileURL else { throw CocoaError(.fileWriteNoPermission) }
+            let data = try PropertyListSerialization.data(fromPropertyList: next, format: .binary, options: 0)
+            try data.write(to: file, options: .atomic)
+            try FileManager.default.setAttributes([.posixPermissions:0o600], ofItemAtPath:file.path)
+            values = next
+        } catch { /* Callers verify persistence by reading back; never fall back to standard. */ }
+    }
+}
+
 final class ProgressGradientPreferences {
     static let key="overlay.progressGradient.v1"
-    private let defaults:UserDefaults
-    init(defaults:UserDefaults = .standard) { self.defaults=defaults }
+    private let defaults:any PreferenceStore
+    init(defaults:any PreferenceStore = UserDefaults.standard) { self.defaults=defaults }
     func load() -> ProgressGradientSettings {
         guard let data=defaults.data(forKey:Self.key),let settings=try? JSONDecoder().decode(ProgressGradientSettings.self,from:data),settings.isValid else { return .standard }
         return settings

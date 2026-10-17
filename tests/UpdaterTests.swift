@@ -82,3 +82,14 @@ MainActor.assumeIsolated {
     catch { print("PASS actual Sparkle rejects unconfigured host before checking") }
     #endif
 }
+
+for (version, build) in [("1.2.3", "53"), ("7.8.9", "90")] {
+    let url=URL(string:"https://github.com/ALEXESLAT/usage-topbar/releases/download/v\(version)/UsageTopbar-\(version)-macOS-arm64.zip")!
+    require(UpdatePolicy.presentationProblem(version:build,displayVersion:version,download:url,notes:"Version-specific signed notes") == nil,"matching signed item")
+    require(UpdatePolicy.presentationProblem(version:build,displayVersion:"0.1.0",download:url,notes:"stale text") != nil,"stale display version rejected")
+    for notes:String? in [nil,"","  \n"] {
+        require(UpdatePolicy.presentationProblem(version:build,displayVersion:version,download:url,notes:notes)?.contains("未获取") == true,"missing notes never become stale release facts")
+    }
+    require(UpdatePolicy.presentationProblem(version:build,displayVersion:version,download:url,notes:"Fresh retry notes") == nil,"retry reads current item without presentation cache")
+}
+print("PASS dynamic item version binding, missing notes, stale version rejection and stateless retry")

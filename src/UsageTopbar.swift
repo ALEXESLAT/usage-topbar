@@ -1405,6 +1405,38 @@ final class LoginItemController {
     }
 }
 
+// Opt-in offline acceptance uses the release binary with explicit local fixtures.
+// Missing/invalid roots fail closed before any app, account or preference startup.
+final class AcceptanceContext {
+    static let current: AcceptanceContext? = {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "--acceptance-root") else { return nil }
+        do {
+            guard args.indices.contains(i + 1) else { throw CocoaError(.fileReadNoSuchFile) }
+            return try AcceptanceContext(root: URL(fileURLWithPath: args[i + 1]).standardizedFileURL)
+        } catch {
+            FileHandle.standardError.write(Data("Invalid offline acceptance root; application was not started.\n".utf8)); exit(64)
+        }
+    }()
+    let root: URL
+    let preferences: FilePreferenceStore
+    var history: URL { root.appendingPathComponent("history-v1.json") }
+    init(root: URL) throws {
+        let canonical = root.resolvingSymlinksInPath()
+        let temp = URL(fileURLWithPath: "/private/tmp", isDirectory: true)
+        guard canonical == root, canonical.deletingLastPathComponent().path == temp.path,
+              canonical.lastPathComponent.hasPrefix("UsageTopbar-Acceptance-"),
+              let token = UUID(uuidString: String(canonical.lastPathComponent.dropFirst("UsageTopbar-Acceptance-".count))),
+              try String(contentsOf: canonical.appendingPathComponent("acceptance-marker"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines) == token.uuidString else { throw CocoaError(.fileReadNoPermission) }
+        self.root = canonical
+        for name in ["acceptance-marker", "preferences.plist", "history-v1.json"] {
+            let file = canonical.appendingPathComponent(name)
+            guard file.resolvingSymlinksInPath() == file else { throw CocoaError(.fileReadNoPermission) }
+        }
+        preferences = try FilePreferenceStore(file: canonical.appendingPathComponent("preferences.plist"))
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private struct TrackedWindow {
         let bounds: CGRect
@@ -1419,7 +1451,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let overlayModel = OverlayModel()
     private var statusItem: NSStatusItem!
     private var statusMenu: NSMenu!
-    private lazy var historyStore = QuotaHistoryStore(file: CommandLine.arguments.contains("--mock") ? nil : QuotaHistoryStore.defaultURL)
+    private lazy var historyStore = QuotaHistoryStore(file: AcceptanceContext.current?.history ?? (CommandLine.arguments.contains("--mock") ? nil : QuotaHistoryStore.defaultURL))
     private lazy var historyWindows = HistoryWindowController(store: historyStore)
     private var rateClient: RateLimitClient?
     private var networkUsageMonitor: SystemNetworkUsageMonitor?
@@ -1432,8 +1464,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var currentDarkBackground: Bool?
     private var historyThemeObservation:NSKeyValueObservation?
     private var contrastSamplePending = false
-    private let preferences = OverlayPreferences()
-    private lazy var gradientPreferences=ProgressGradientPreferences()
+    private let preferences = OverlayPreferences(defaults: AcceptanceContext.current?.preferences as (any PreferenceStore)? ?? UserDefaults.standard)
+    private lazy var gradientPreferences=ProgressGradientPreferences(defaults: AcceptanceContext.current?.preferences as (any PreferenceStore)? ?? UserDefaults.standard)
     private lazy var gradientEditor=ProgressGradientEditorController(model:overlayModel,preferences:gradientPreferences)
     private var userHidden = false
     private var sleeping = false
@@ -1446,7 +1478,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !didStart else { return }
         didStart = true
-        if AppVariant.isTesting { UserDefaults.standard.register(defaults: [OverlayPreferences.hiddenKey: true]) }
+        if AppVariant.isTesting && AcceptanceContext.current == nil { UserDefaults.standard.register(defaults: [OverlayPreferences.hiddenKey: true]) }
         userHidden = preferences.userHidden
         configureGradients()
         configureApplicationIcon()
@@ -1458,7 +1490,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 guard let self else { return }
                 self.lastContrastSample = .distantPast
                 if !self.panel.isVisible { self.applyContrast(isDarkBackground:self.fallbackDarkAppearance()) }
-                else { self.updatePanelVisibility(for:NSWorkspace.shared.frontmostApplication) }
+                else if AcceptanceContext.current == nil { self.updatePanelVisibility(for:NSWorkspace.shared.frontmostApplication) }
             }
         }
         #if USAGE_TOPBAR_TESTING
@@ -1468,7 +1500,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DistributedNotificationCenter.default().addObserver(self, selector:#selector(exerciseTestingHistory), name:Notification.Name("local.alex.usage-topbar.testing.exerciseHistory"),object:nil)
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(showTestingHistory), name: Notification.Name("local.alex.usage-topbar.testing.showHistory"), object: nil)
         #endif
-        if CommandLine.arguments.contains("--mock") { startMock() } else { startLive() }
+        if AcceptanceContext.current != nil || CommandLine.arguments.contains("--mock") { startMock() } else { startLive() }
     }
 
     #if USAGE_TOPBAR_TESTING
@@ -1554,6 +1586,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Construct without presenting: both variants share the same feature menu.
     private func makeStatusMenu() -> NSMenu {
         let menu = NSMenu()
+        if AcceptanceContext.current != nil {
+            let label = menu.addItem(withTitle: "离线验收 · " + AppVariant.versionLabel, action: nil, keyEquivalent: ""); label.isEnabled = false
+            menu.addItem(withTitle: "验收外观：浅色／深色", action: #selector(toggleAcceptanceAppearance), keyEquivalent: "")
+        }
         if AppVariant.isTesting {
             let label = menu.addItem(withTitle: AppVariant.name + " · " + AppVariant.versionLabel, action: nil, keyEquivalent: "")
             label.isEnabled = false
@@ -1565,7 +1601,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         loginItemMenu = menu.addItem(withTitle: "开机自启", action: #selector(toggleLoginItem), keyEquivalent: "")
         menu.delegate = self
-        if !AppVariant.isTesting { menu.addItem(withTitle: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "") }
+        if !AppVariant.isTesting && AcceptanceContext.current == nil { menu.addItem(withTitle: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "") }
         menu.addItem(withTitle: "退出 " + AppVariant.name, action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
         return menu
@@ -1586,6 +1622,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) { updateLoginItemMenu() }
 
     private func updateLoginItemMenu() {
+        if AcceptanceContext.current != nil { loginItemMenu?.isEnabled = false; loginItemMenu?.title = "离线验收不读取或修改自启"; return }
         if AppVariant.isTesting { loginItemMenu?.isEnabled = false; loginItemMenu?.title = "测试版不开机自启"; return }
         let status = loginItemController.status
         loginItemMenu?.state = status == .enabled ? .on : (status == .requiresApproval ? .mixed : .off)
@@ -1595,7 +1632,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func toggleLoginItem() {
-        guard !AppVariant.isTesting else { return }
+        guard !AppVariant.isTesting && AcceptanceContext.current == nil else { return }
         do { try loginItemController.toggle() }
         catch {
             let alert = NSAlert()
@@ -1608,6 +1645,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func startLive() {
+        guard AcceptanceContext.current == nil else { return }
         panel.orderOut(nil)
         startPositionTracking()
         startActivationTracking()
@@ -1776,7 +1814,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func apply(_ snapshot: UsageSnapshot) {
         if overlayModel.snapshot != snapshot { overlayModel.snapshot = snapshot }
-        let title = AppVariant.statusPrefix + " \(snapshot.percentageText)"
+        let title = (AcceptanceContext.current == nil ? AppVariant.statusPrefix : "验收") + " \(snapshot.percentageText)"
         let tooltip = "Usage Topbar — Codex remaining usage\n" + snapshot.detail + "\n" + snapshot.resetCardDisplay.accessibilityText
         if statusItem.button?.title != title { statusItem.button?.title = title }
         if statusItem.button?.toolTip != tooltip { statusItem.button?.toolTip = tooltip }
@@ -1934,13 +1972,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func showGradientSettings() { gradientEditor.show() }
-    @MainActor @objc private func checkForUpdates() { appUpdater.checkForUpdates() }
+    @MainActor @objc private func checkForUpdates() { guard AcceptanceContext.current == nil else { return }; appUpdater.checkForUpdates() }
+    @objc private func toggleAcceptanceAppearance() {
+        guard AcceptanceContext.current != nil else { return }
+        let dark = !fallbackDarkAppearance(); NSApp.appearance = NSAppearance(named: dark ? .darkAqua : .aqua); applyContrast(isDarkBackground: dark)
+    }
     @objc private func refreshNow() { rateClient?.refresh() }
     @objc private func togglePanel() {
         // Keep manual intent separate from automatic hiding caused by window geometry.
         userHidden.toggle()
         if !CommandLine.arguments.contains("--mock") { preferences.userHidden = userHidden }
-        synchronizePanelVisibility()
+        if AcceptanceContext.current != nil { if userHidden { panel.orderOut(nil) } else { panel.orderFrontRegardless() } }
+        else { synchronizePanelVisibility() }
     }
     @objc private func quit() { NSApp.terminate(nil) }
 }
