@@ -1423,15 +1423,15 @@ final class AcceptanceContext {
     var history: URL { root.appendingPathComponent("history-v1.json") }
     init(root: URL) throws {
         let canonical = root.resolvingSymlinksInPath()
-        let temp = URL(fileURLWithPath: "/private/tmp", isDirectory: true)
-        guard canonical == root, canonical.deletingLastPathComponent().path == temp.path,
+        let temp = URL(fileURLWithPath: "/private/tmp", isDirectory: true).resolvingSymlinksInPath()
+        guard canonical.path == root.path, canonical.deletingLastPathComponent().path == temp.path,
               canonical.lastPathComponent.hasPrefix("UsageTopbar-Acceptance-"),
               let token = UUID(uuidString: String(canonical.lastPathComponent.dropFirst("UsageTopbar-Acceptance-".count))),
               try String(contentsOf: canonical.appendingPathComponent("acceptance-marker"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines) == token.uuidString else { throw CocoaError(.fileReadNoPermission) }
         self.root = canonical
         for name in ["acceptance-marker", "preferences.plist", "history-v1.json"] {
             let file = canonical.appendingPathComponent(name)
-            guard file.resolvingSymlinksInPath() == file else { throw CocoaError(.fileReadNoPermission) }
+            guard file.resolvingSymlinksInPath().path == file.path else { throw CocoaError(.fileReadNoPermission) }
         }
         preferences = try FilePreferenceStore(file: canonical.appendingPathComponent("preferences.plist"))
     }
@@ -2080,6 +2080,7 @@ if CommandLine.arguments.contains("--show-history") {
 }
 #endif
 
+_ = AcceptanceContext.current // Validate opt-in isolation before AppKit startup.
 let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate
