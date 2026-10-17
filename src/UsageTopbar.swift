@@ -306,6 +306,9 @@ final class OverlayModel: ObservableObject {
     }
     deinit { fillTimer?.invalidate() }
 
+    var onProgressGradientChange:((ProgressGradientSettings)->Void)?
+    var progressGradient=ProgressGradientSettings.standard { willSet { if newValue != progressGradient { objectWillChange.send() } } didSet { if oldValue != progressGradient { onProgressGradientChange?(progressGradient) } } }
+
     var isDarkBackground = true {
         willSet { if newValue != isDarkBackground { objectWillChange.send() } }
     }
@@ -451,13 +454,6 @@ struct UsageEdgeTabView: View {
         primaryColor.opacity(0.20)
     }
 
-    private var progressColor: Color {
-        if model.snapshot.remaining == nil { return .gray }
-        if remaining <= 20 { return .red }
-        if remaining <= 50 { return .orange }
-        return .green
-    }
-
     private var accessibilityDetail: String {
         var text = model.snapshot.detail
         if let reset = model.snapshot.resetText, !reset.isEmpty {
@@ -562,8 +558,7 @@ struct UsageEdgeTabView: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         Capsule().fill(primaryColor.opacity(0.12))
-                        Capsule().fill(progressColor)
-                            .frame(width: geometry.size.width * remaining / 100)
+                        QuotaGradientFill(settings:model.progressGradient,fraction:remaining/100)
                     }
                 }
                 .frame(height: 4)
@@ -648,6 +643,7 @@ struct UsageEdgeTabPreview: View {
 
 final class RateLimitClient {
     var onSnapshot: ((UsageSnapshot) -> Void)?
+    var onHistoryReadings: (([HistoryReading]) -> Void)?
     var onStatus: ((String) -> Void)?
     var onConnectionState: ((GPTConnectionState) -> Void)?
 
@@ -737,7 +733,7 @@ final class RateLimitClient {
             pendingID = 1
             armResponseTimeout()
             send(["method": "initialize", "id": 1, "params": [
-                "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.5.0"],
+                "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.6.11"],
                 "capabilities": ["experimentalApi": true]
             ]])
         } catch {
@@ -906,6 +902,7 @@ final class RateLimitClient {
         restartAttempt = 0
         onConnectionState?(.connected)
         onSnapshot?(snapshot)
+        onHistoryReadings?(HistoryReading.parse(result, at: Date()))
     }
 
     func parseReadResponse(_ result: [String: Any], now: Date = Date()) -> UsageSnapshot? {
@@ -1421,6 +1418,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var panel: NSPanel!
     private let overlayModel = OverlayModel()
     private var statusItem: NSStatusItem!
+    private var statusMenu: NSMenu!
+    private lazy var historyStore = QuotaHistoryStore(file: CommandLine.arguments.contains("--mock") ? nil : QuotaHistoryStore.defaultURL)
+    private lazy var historyWindows = HistoryWindowController(store: historyStore)
     private var rateClient: RateLimitClient?
     private var networkUsageMonitor: SystemNetworkUsageMonitor?
     private var positionTimer: Timer?
@@ -1430,8 +1430,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var mockRemaining = 68.0
     private var lastContrastSample = Date.distantPast
     private var currentDarkBackground: Bool?
+    private var historyThemeObservation:NSKeyValueObservation?
     private var contrastSamplePending = false
     private let preferences = OverlayPreferences()
+    private lazy var gradientPreferences=ProgressGradientPreferences()
+    private lazy var gradientEditor=ProgressGradientEditorController(model:overlayModel,preferences:gradientPreferences)
     private var userHidden = false
     private var sleeping = false
     private let loginItemController = LoginItemController()
@@ -1443,15 +1446,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !didStart else { return }
         didStart = true
+        if AppVariant.isTesting { UserDefaults.standard.register(defaults: [OverlayPreferences.hiddenKey: true]) }
         userHidden = preferences.userHidden
+        overlayModel.onProgressGradientChange = { [weak self] settings in self?.historyWindows.curveGradient=settings }
+        if AppVariant.isTesting { overlayModel.progressGradient=gradientPreferences.load() }
+        historyWindows.curveGradient=overlayModel.progressGradient
         configureApplicationIcon()
         configureStatusItem()
         configurePanel()
+        historyWindows.dark=fallbackDarkAppearance()
+        historyThemeObservation=NSApp.observe(\.effectiveAppearance,options:[.new]) { [weak self] _,_ in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.lastContrastSample = .distantPast
+                if !self.panel.isVisible { self.applyContrast(isDarkBackground:self.fallbackDarkAppearance()) }
+                else { self.updatePanelVisibility(for:NSWorkspace.shared.frontmostApplication) }
+            }
+        }
+        #if USAGE_TOPBAR_TESTING
+        DistributedNotificationCenter.default().addObserver(self, selector:#selector(showGradientSettings),name:Notification.Name("local.alex.usage-topbar.testing.gradientSettings"),object:nil)
+        DistributedNotificationCenter.default().addObserver(self, selector:#selector(testingHistoryTheme(_:)), name:Notification.Name("local.alex.usage-topbar.testing.historyTheme"),object:nil)
+        DistributedNotificationCenter.default().addObserver(self, selector:#selector(showTestingPreview), name:Notification.Name("local.alex.usage-topbar.testing.showPreview"),object:nil)
+        DistributedNotificationCenter.default().addObserver(self, selector:#selector(exerciseTestingHistory), name:Notification.Name("local.alex.usage-topbar.testing.exerciseHistory"),object:nil)
+        DistributedNotificationCenter.default().addObserver(self, selector: #selector(showTestingHistory), name: Notification.Name("local.alex.usage-topbar.testing.showHistory"), object: nil)
+        #endif
         if CommandLine.arguments.contains("--mock") { startMock() } else { startLive() }
     }
 
+    #if USAGE_TOPBAR_TESTING
+    @objc private func testingHistoryTheme(_ notification:Notification) {
+        guard let mode=notification.object as? String else { return }
+        historyWindows.dark=mode == "dark" ? true:(mode == "light" ? false:(currentDarkBackground ?? fallbackDarkAppearance()))
+    }
+    @objc private func showTestingPreview() {
+        guard let button=statusItem.button else { return }
+        NSApp.activate(ignoringOtherApps:true)
+        historyWindows.dark=currentDarkBackground ?? fallbackDarkAppearance()
+        historyWindows.toggle(relativeTo:button)
+    }
+    @objc private func exerciseTestingHistory() { historyWindows.exerciseScroll() }
+    @objc private func showTestingHistory() {
+        historyWindows.dark = currentDarkBackground ?? fallbackDarkAppearance()
+        historyWindows.showWindow()
+    }
+    #endif
+
     func applicationWillTerminate(_ notification: Notification) {
         isTerminating = true
+        if !CommandLine.arguments.contains("--mock") { historyStore.shutdown() }
         overlayModel.setPresentationActive(false)
         rateClient?.stop(waitForChildExit: true)
         networkUsageMonitor?.stop()
@@ -1493,27 +1535,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func configureStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.title = " --%"
+        statusItem.button?.title = AppVariant.statusPrefix + " --%"
         statusItem.button?.image = CodexMark.statusImage
         statusItem.button?.imagePosition = .imageLeading
         statusItem.button?.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
         statusItem.button?.toolTip = "Usage Topbar — Codex remaining usage"
         let menu = NSMenu()
+        if AppVariant.isTesting {
+            let label = menu.addItem(withTitle: AppVariant.name + " · 0.6.19 (44)", action: nil, keyEquivalent: "")
+            label.isEnabled = false
+            menu.addItem(.separator())
+        }
         menu.addItem(withTitle: "立即刷新", action: #selector(refreshNow), keyEquivalent: "r")
         menu.addItem(withTitle: "显示/隐藏浮层", action: #selector(togglePanel), keyEquivalent: "h")
+        if AppVariant.isTesting { menu.addItem(withTitle:"渐变设置…",action:#selector(showGradientSettings),keyEquivalent:"") }
         menu.addItem(.separator())
         loginItemMenu = menu.addItem(withTitle: "开机自启", action: #selector(toggleLoginItem), keyEquivalent: "")
         menu.delegate = self
         updateLoginItemMenu()
-        menu.addItem(withTitle: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "")
-        menu.addItem(withTitle: "退出 Usage Topbar", action: #selector(quit), keyEquivalent: "q")
+        if !AppVariant.isTesting { menu.addItem(withTitle: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "") }
+        menu.addItem(withTitle: "退出 " + AppVariant.name, action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
-        statusItem.menu = menu
+        statusMenu = menu
+        statusItem.button?.target = self
+        statusItem.button?.action = #selector(statusClicked)
+        statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+    }
+
+    @objc private func statusClicked() {
+        guard let button = statusItem.button else { return }
+        if NSApp.currentEvent?.type == .rightMouseUp || NSApp.currentEvent?.modifierFlags.contains(.control) == true {
+            statusItem.menu = statusMenu
+            button.performClick(nil)
+            statusItem.menu = nil
+        } else {
+            historyWindows.dark = currentDarkBackground ?? fallbackDarkAppearance()
+            historyWindows.toggle(relativeTo: button)
+        }
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) { updateLoginItemMenu() }
 
     private func updateLoginItemMenu() {
+        if AppVariant.isTesting { loginItemMenu?.isEnabled = false; loginItemMenu?.title = "测试版不开机自启"; return }
         let status = loginItemController.status
         loginItemMenu?.state = status == .enabled ? .on : (status == .requiresApproval ? .mixed : .off)
         loginItemMenu?.title = status == .requiresApproval ? "开机自启（待系统批准）" : "开机自启"
@@ -1522,6 +1586,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func toggleLoginItem() {
+        guard !AppVariant.isTesting else { return }
         do { try loginItemController.toggle() }
         catch {
             let alert = NSAlert()
@@ -1538,12 +1603,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         startPositionTracking()
         startActivationTracking()
         let client = RateLimitClient()
+        _ = historyWindows
+        client.onHistoryReadings = { [weak self] readings in
+            self?.historyStore.receive(readings, now: Date())
+        }
         client.onSnapshot = { [weak self] snapshot in
             Task { @MainActor in self?.apply(snapshot) }
         }
         client.onStatus = { [weak self] status in
+            self?.historyStore.unavailable(reason: status.hasPrefix("Offline") ? "offline" : "read-unavailable")
             Task { @MainActor in
-                if self?.statusItem.button?.title != " --%" { self?.statusItem.button?.title = " --%" }
+                if self?.statusItem.button?.title != AppVariant.statusPrefix + " --%" { self?.statusItem.button?.title = AppVariant.statusPrefix + " --%" }
                 self?.overlayModel.snapshot = .unavailable(status)
             }
         }
@@ -1641,6 +1711,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func willSleep(_ notification: Notification) {
         sleeping = true
+        historyStore.unavailable(reason: "sleep")
+        historyStore.flushPersistence()
         overlayModel.setPresentationActive(false)
         panel.orderOut(nil)
         stopPositionTracking()
@@ -1648,7 +1720,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         networkUsageMonitor?.stop()
         overlayModel.snapshot = .unavailable("Sleeping · data unavailable")
         overlayModel.connectionState = .checking
-        statusItem.button?.title = " --%"
+        statusItem.button?.title = AppVariant.statusPrefix + " --%"
     }
 
     @objc private func didWake(_ notification: Notification) {
@@ -1695,7 +1767,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func apply(_ snapshot: UsageSnapshot) {
         if overlayModel.snapshot != snapshot { overlayModel.snapshot = snapshot }
-        let title = " \(snapshot.percentageText)"
+        let title = AppVariant.statusPrefix + " \(snapshot.percentageText)"
         let tooltip = "Usage Topbar — Codex remaining usage\n" + snapshot.detail + "\n" + snapshot.resetCardDisplay.accessibilityText
         if statusItem.button?.title != title { statusItem.button?.title = title }
         if statusItem.button?.toolTip != tooltip { statusItem.button?.toolTip = tooltip }
@@ -1849,8 +1921,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard currentDarkBackground != isDarkBackground else { return }
         currentDarkBackground = isDarkBackground
         overlayModel.isDarkBackground = isDarkBackground
+        historyWindows.dark = isDarkBackground
     }
 
+    @objc private func showGradientSettings() { if AppVariant.isTesting { gradientEditor.show() } }
     @MainActor @objc private func checkForUpdates() { appUpdater.checkForUpdates() }
     @objc private func refreshNow() { rateClient?.refresh() }
     @objc private func togglePanel() {
@@ -1918,6 +1992,41 @@ if CommandLine.arguments.contains("--login-item-status") {
     }
     exit(0)
 }
+
+// Read-only inspection: test source preference may be read; no monitoring or history writes.
+if CommandLine.arguments.contains("--variant-info") {
+    let info: [String: Any] = ["testing": AppVariant.isTesting, "name": AppVariant.name,
+        "bundleID": Bundle.main.bundleIdentifier ?? "", "expectedBundleID": AppVariant.bundleID,
+        "executable": Bundle.main.object(forInfoDictionaryKey: "CFBundleExecutable") as? String ?? "",
+        "historyPath": QuotaHistoryStore.defaultURL.path, "preferenceDomain": AppVariant.bundleID,
+        "historySource": HistorySourcePolicy.enabled ? "simulated" : "real",
+        "updaterDisabled": AppVariant.isTesting, "loginDisabled": AppVariant.isTesting]
+    let data = try! JSONSerialization.data(withJSONObject: info, options: [.sortedKeys])
+    FileHandle.standardOutput.write(data); exit(0)
+}
+
+#if USAGE_TOPBAR_TESTING
+if CommandLine.arguments.contains("--show-gradient-settings") {
+    DistributedNotificationCenter.default().postNotificationName(Notification.Name("local.alex.usage-topbar.testing.gradientSettings"),object:nil,userInfo:nil,deliverImmediately:true)
+    exit(0)
+}
+if let index=CommandLine.arguments.firstIndex(of:"--history-theme"),CommandLine.arguments.indices.contains(index+1) {
+    DistributedNotificationCenter.default().postNotificationName(Notification.Name("local.alex.usage-topbar.testing.historyTheme"),object:CommandLine.arguments[index+1],userInfo:nil,deliverImmediately:true)
+    exit(0)
+}
+if CommandLine.arguments.contains("--show-history-preview") {
+    DistributedNotificationCenter.default().postNotificationName(Notification.Name("local.alex.usage-topbar.testing.showPreview"),object:nil,userInfo:nil,deliverImmediately:true)
+    exit(0)
+}
+if CommandLine.arguments.contains("--exercise-history-scroll") {
+    DistributedNotificationCenter.default().postNotificationName(Notification.Name("local.alex.usage-topbar.testing.exerciseHistory"),object:nil,userInfo:nil,deliverImmediately:true)
+    exit(0)
+}
+if CommandLine.arguments.contains("--show-history") {
+    DistributedNotificationCenter.default().postNotificationName(Notification.Name("local.alex.usage-topbar.testing.showHistory"), object: nil, userInfo: nil, deliverImmediately: true)
+    exit(0)
+}
+#endif
 
 let app = NSApplication.shared
 let delegate = AppDelegate()

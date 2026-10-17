@@ -2,9 +2,14 @@
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-APP="/Applications/UsageTopbar.app"
-EXEC="$APP/Contents/MacOS/UsageTopbar"
-BUILD_APP="${TMPDIR:-/private/tmp}/usage-topbar-dev/UsageTopbar.app"
+CHANNEL="${USAGE_TOPBAR_CHANNEL:-testing}"
+case "$CHANNEL" in
+  testing) APP_NAME="UsageTopbar Testing.app"; EXEC_NAME="UsageTopbarTest" ;;
+  release) APP_NAME="UsageTopbar.app"; EXEC_NAME="UsageTopbar" ;;
+  *) echo "Unknown build channel: $CHANNEL" >&2; exit 2 ;;
+esac
+APP="/Applications/$APP_NAME"
+EXEC="$APP/Contents/MacOS/$EXEC_NAME"
 
 case "${1:-status}" in
   start)
@@ -22,10 +27,10 @@ case "${1:-status}" in
     open -n "$APP" --args --mock
     ;;
   stop)
-    pkill -x UsageTopbar 2>/dev/null || true
+    pkill -x "$EXEC_NAME" 2>/dev/null || true
     ;;
   status)
-    if STATUS_OUTPUT=$(pgrep -x UsageTopbar 2>&1); then
+    if STATUS_OUTPUT=$(pgrep -x "$EXEC_NAME" 2>&1); then
       echo "running"
     else
       STATUS_CODE=$?
@@ -38,8 +43,8 @@ case "${1:-status}" in
     fi
     ;;
   build)
-    mkdir -p "$(dirname "$BUILD_APP")"
-    USAGE_TOPBAR_APP_OUTPUT="$BUILD_APP" "$ROOT/scripts/build-overlay.sh"
+    BUILD_ROOT=$(mktemp -d "${TMPDIR:-/private/tmp}/usage-topbar-$CHANNEL.XXXXXX")
+    USAGE_TOPBAR_CHANNEL="$CHANNEL" USAGE_TOPBAR_APP_OUTPUT="$BUILD_ROOT/$APP_NAME" "$ROOT/scripts/build-overlay.sh"
     ;;
   preview)
     echo "$ROOT/assets/usage-topbar-preview.png"

@@ -23,7 +23,7 @@
 ## 维护者发布步骤
 
 1. 递增版本和 build，运行回归、启动、更新策略、元数据和相关安装测试。正式身份为 `local.alex.usage-topbar`；禁止把测试身份、测试 feed 或模拟 app-server 放进正式 app。
-2. 用 `USAGE_TOPBAR_REQUIRE_UPDATER=1 scripts/build-overlay.sh` 构建并验证 arm64、最低系统、嵌套代码签名及隐私内容。用 `ditto -c -k --keepParent` 打包最终 ZIP。
+2. 用 `USAGE_TOPBAR_CHANNEL=release USAGE_TOPBAR_REQUIRE_UPDATER=1 scripts/build-overlay.sh` 构建并验证 arm64、最低系统、嵌套代码签名及隐私内容。用 `ditto -c -k --keepParent` 打包最终 ZIP。
 3. 运行 `scripts/sign-update.py` 的身份/精确版本检查。加 `--sign` 才用现有钥匙串账户 `ALEXESLAT.usage-topbar` 签署冻结快照；输出 SHA-256，文件在检查/签名期间变化则拒绝。私钥不导出、不传环境变量、不上传 CI，不常规生成或轮换密钥。
 4. 使用固定 Sparkle 工具生成签名清单：
    ```sh
