@@ -2,7 +2,7 @@
 
 [简体中文](RELEASE_NOTES.md)
 
-**Draft candidate · build 52 · Apple Silicon · macOS 13+**
+**Release · build 52 · Apple Silicon · macOS 13+**
 
 0.7.0 brings local quota history and custom gradients to the release configuration while retaining manual updates and a separate Testing channel.
 
@@ -13,6 +13,6 @@
 - **Reduce repeated work:** cache curve/gradient rendering, pause hidden-chart refreshes and catch up when shown. History snapshots save serially in the background, coalesce changes, retry failures and flush on sleep/exit.
 - **Retain settings on upgrade:** preserve the production preference domain and saved palette. Real-history migration validates, deduplicates, favors production conflicts and provides backups/rollback. Testing preferences and simulated data are not imported.
 
-After publication, users of 0.5.0 or later production versions can choose “检查更新…” (Check for Updates) and approve download, installation and relaunch. Version text and notes come from a matching authenticated feed item; missing or inconsistent metadata produces an unavailable message instead of old notes.
+Users of 0.5.0 or later production versions can choose “检查更新…” (Check for Updates) and approve download, installation and relaunch. Version text and notes come from a matching authenticated feed item; missing or inconsistent metadata produces an unavailable message instead of old notes.
 
-This remains a draft. The public feed stays on 0.5.0; 0.6.26 was withdrawn to draft. Foreground acceptance and resource sampling of the current candidate remain required. No claim of complete validation or improved battery life is made. The app is ad-hoc signed, not Apple-notarized, and has no automatic health rollback. Older macOS and physical-trackpad coverage remain limited.
+CI and package signature verification passed. Some foreground interaction checks and resource sampling remain incomplete. No claim of complete validation or improved battery life is made. The app is ad-hoc signed, not Apple-notarized, and has no automatic health rollback. Older macOS and physical-trackpad coverage remain limited.
