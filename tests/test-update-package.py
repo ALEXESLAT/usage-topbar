@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='usage-topbar-package-tests-') as tmp:
  def write(value):
   with zipfile.ZipFile(p,'w') as z:z.writestr('UsageTopbar.app/Contents/Info.plist',plistlib.dumps(value))
  write(info);assert gate.validate(p,version,build)['preflight']=='passed'
- for field,value in [('UsageTopbarHistorySource','simulation-switchable'),('UsageTopbarHistorySource',None),('CFBundleIdentifier','wrong.app'),('CFBundleVersion','20'),('CFBundleVersion',str(int(build)+1)),('CFBundleShortVersionString','9.0'),('SUPublicEDKey','invalid'),('SURequireSignedFeed',False),('SUAutomaticallyUpdate',True)]:
+ for field,value in [('UsageTopbarHistorySource','simulation-switchable'),('UsageTopbarHistorySource',None),('CFBundleIdentifier','wrong.app'),('CFBundleVersion','20'),('CFBundleVersion',str(int(build)+1)),('CFBundleShortVersionString','9.0'),('SUPublicEDKey','invalid'),('SURequireSignedFeed',False),('SUAutomaticallyUpdate',True),('SUShowReleaseNotes',False)]:
   bad=dict(info)
   if value is None: bad.pop(field,None)
   else: bad[field]=value

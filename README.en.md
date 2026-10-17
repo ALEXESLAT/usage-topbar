@@ -16,13 +16,11 @@ See your remaining allowance at a glance while Codex is running, without clickin
 
 *Rendered with the actual 0.4.0 UI components, simulated data, and a static dark background; live Liquid Glass refraction is not shown.*
 
-**The unpublished 0.7.0 candidate adds local quota history**: a four-day overview, scrollable seven-day detail, reset events and three-month retention. History saves on a serial background queue; hidden history views skip data refreshes.
+**The unpublished 0.7.0 candidate** adds a four-day preview (left-click the percentage) and a seven-day scrolling history (click the chart). Right-click → **渐变设置…** edits color/alpha stops shared by the quota bar and both history views. Detail uses crosshair readings; compact hover labels stay concise, with adaptive light/dark appearance.
 
-The history title bar blends into full-size content, retaining close controls and blank-area dragging. Testing history detail uses separate axis/point percentages and a bottom time label. The four-day popover uses one compact percentage and a locator dot; click to open seven-day detail. Local control and builds default to the isolated Testing app. Production requires explicit `USAGE_TOPBAR_CHANNEL=release` and is not replaced during testing iterations.
+Fresh quota is normally recorded every 30 minutes and retained for three months. Gaps are not invented and some resets are inferred. Curve caches, hidden-window refresh pausing and serial background persistence reduce repeated work; no battery-life improvement is claimed. Updates preserve production settings; history migration includes backups and rollback. There is no automatic health rollback.
 
-History readouts and Return to Now use native Liquid Glass on macOS 26+, compatible material on older systems, and solid surfaces with Reduce Transparency. History follows the effective theme at runtime. The plot itself has no glass overlay.
-
-0.7.0 Release and Testing menus → **Gradient settings** edits the main quota bar with movable color/alpha stops, preview, save/cancel and reset. The full-track gradient stays fixed as quota clips from the right. History uses full background blur and adaptive tint to keep background text from competing with the chart.
+[Features, entry points and validation limits](RELEASE_NOTES.en.md). Stable downloads remain on 0.5.0; history/color features described here belong to the candidate.
 
 ## Features
 

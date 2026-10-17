@@ -1424,7 +1424,7 @@ final class AcceptanceContext {
     init(root: URL) throws {
         let canonical = root.resolvingSymlinksInPath()
         let temp = URL(fileURLWithPath: "/private/tmp", isDirectory: true).resolvingSymlinksInPath()
-        guard canonical.path == root.path, canonical.deletingLastPathComponent().path == temp.path,
+        guard canonical.lastPathComponent == root.lastPathComponent, canonical.deletingLastPathComponent().path == temp.path,
               canonical.lastPathComponent.hasPrefix("UsageTopbar-Acceptance-"),
               let token = UUID(uuidString: String(canonical.lastPathComponent.dropFirst("UsageTopbar-Acceptance-".count))),
               try String(contentsOf: canonical.appendingPathComponent("acceptance-marker"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines) == token.uuidString else { throw CocoaError(.fileReadNoPermission) }

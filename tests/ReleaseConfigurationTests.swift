@@ -117,7 +117,7 @@ defer { try? FileManager.default.removeItem(at:acceptanceRoot) }
 let token=String(acceptanceRoot.lastPathComponent.dropFirst("UsageTopbar-Acceptance-".count))
 try (token+"\n").write(to:acceptanceRoot.appendingPathComponent("acceptance-marker"),atomically:true,encoding:.utf8)
 let isolated=try AcceptanceContext(root:acceptanceRoot)
-require(isolated.history.deletingLastPathComponent().path==acceptanceRoot.path,"history stays in explicit root")
+require(isolated.history.deletingLastPathComponent().path==acceptanceRoot.resolvingSymlinksInPath().path,"history stays in explicit root")
 let isolatedPrefs=ProgressGradientPreferences(defaults:isolated.preferences)
 require(isolatedPrefs.save(palette),"offline preference save")
 let reopened=try AcceptanceContext(root:acceptanceRoot)

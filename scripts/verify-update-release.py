@@ -20,6 +20,8 @@ def inspect(archive,feed,version,build):
     items=[i for i in root.findall('./channel/item') if i.findtext(SPARKLE+'version')==build]
     if len(items)!=1: raise ValueError('Expected exactly one matching feed build')
     item=items[0];enclosure=item.find('enclosure')
+    notes=item.find('description')
+    if notes is None or not (notes.text or '').strip() or notes.get(SPARKLE+'descriptionFormat')!='plain-text': raise ValueError('Missing version-bound plain-text release notes')
     if enclosure is None or item.findtext(SPARKLE+'shortVersionString')!=version: raise ValueError('Feed/package version mismatch')
     expected='https://github.com/ALEXESLAT/usage-topbar/releases/download/v'+version+'/'+archive.name
     if enclosure.get('url')!=expected or enclosure.get('length')!=str(metadata['length']): raise ValueError('Feed URL/length does not bind this archive')
