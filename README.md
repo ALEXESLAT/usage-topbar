@@ -2,13 +2,15 @@
 
 **简体中文** · [English](README.en.md)
 
+> 0.6.26 已撤回正式发布；相关历史与颜色功能仍在审查，当前稳定下载为 0.5.0。已安装的应用不会自动降级。
+
 为 Apple Silicon Mac 打造的液态玻璃风格轻量工具：把 Codex 剩余额度、周期、重置倒计时、points 和整机网速放在窗口边缘与菜单栏。
 
 运行 Codex 时，一眼就能看到剩余额度，无需点击左下角头像、进入二级菜单查看。把额度信息放在视线内，有助于缓解使用过程中的额度焦虑。
 
-**公开版本：0.6.26（build 51） · Apple Silicon（arm64） · macOS 13+**
+**公开版本：0.5.0（build 24） · Apple Silicon（arm64） · macOS 13+**
 
-[下载 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.dmg) · [下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.6.26) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/ALEXESLAT/usage-topbar/issues)
+[下载 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) · [下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.5.0) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/ALEXESLAT/usage-topbar/issues)
 
 ![Usage Topbar 匿名演示](assets/previews/usage-topbar-0.4.0.png)
 

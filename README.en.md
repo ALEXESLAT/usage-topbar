@@ -2,13 +2,15 @@
 
 **English** · [简体中文](README.md)
 
+> 0.6.26 has been withdrawn from stable distribution. History/color changes remain under review; the stable download is 0.5.0. Installed apps are not automatically downgraded.
+
 A lightweight, liquid-glass-style companion for Apple Silicon Macs. Keep Codex remaining usage, its limiting window, reset countdown, points, and whole-Mac throughput at the window edge and in the menu bar.
 
 See your remaining allowance at a glance while Codex is running, without clicking the avatar in the lower-left corner and opening a submenu to check it. Keeping this information in view can help ease anxiety about usage limits.
 
-**Public release: 0.6.26 (build 51) · Apple Silicon (arm64) · macOS 13+**
+**Public release: 0.5.0 (build 24) · Apple Silicon (arm64) · macOS 13+**
 
-[Download DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.dmg) · [Download ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.zip) · [Release](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.6.26) · [Installation and usage](docs/USAGE.en.md) · [Changelog](CHANGELOG.en.md) · [Report a problem](https://github.com/ALEXESLAT/usage-topbar/issues)
+[Download DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) · [Download ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip) · [Release](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.5.0) · [Installation and usage](docs/USAGE.en.md) · [Changelog](CHANGELOG.en.md) · [Report a problem](https://github.com/ALEXESLAT/usage-topbar/issues)
 
 ![Anonymous Usage Topbar demo](assets/previews/usage-topbar-0.4.0.png)
 
