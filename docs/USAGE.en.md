@@ -1,21 +1,23 @@
 # Install and use Usage Topbar
 
+This documents the unpublished 0.7.0 (52) candidate. Download links still point to stable 0.5.0, which does not include the candidate features. Updates to 0.7.0 are unavailable until explicitly published.
+
 **English** · [简体中文](USAGE.md)
 
-This guide covers **0.6.26 (51)** for Apple Silicon (arm64), macOS 13+. [Project overview](../README.en.md) · [Downloads](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.6.26)
+This guide covers **0.7.0 (52)** for Apple Silicon (arm64), macOS 13+. [Project overview](../README.en.md) · [Downloads](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.5.0)
 
 ## Install or update
 
 1. Install and sign in to the Codex/ChatGPT desktop application, with a usable Codex app-server.
-2. Download the [arm64 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.dmg) or [arm64 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.zip). When updating, quit the previous instance from its menu-bar menu first.
+2. Download the [arm64 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) or [arm64 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip). When updating, quit the previous instance from its menu-bar menu first.
 3. Place `UsageTopbar.app` in `/Applications`. Do not use the app inside a mounted DMG as your permanent installation.
 4. Open the app. This release is ad-hoc signed and not notarized, so macOS may display a developer-verification warning. Verify the source and follow the system's per-app opening prompts. Do not disable Gatekeeper or change global security settings.
 5. The release starts the authorized monitoring immediately without a launch dialog. It adds no login item automatically, credentials, or system permissions; quitting stops sampling and requests.
 
-To check your download, run the following in the download folder and compare the result with the same filename in [SHA256SUMS.txt](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/SHA256SUMS.txt).
+To check your download, run the following in the download folder and compare the result with the same filename in [SHA256SUMS.txt](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/SHA256SUMS.txt).
 
 ```sh
-shasum -a 256 UsageTopbar-0.6.26-macOS-arm64.dmg
+shasum -a 256 UsageTopbar-0.5.0-macOS-arm64.dmg
 ```
 
 No API key or copied account credentials are needed. The app checks registered Codex/ChatGPT application locations and common CLI paths. If none is found, it displays `Codex not found`.
@@ -36,7 +38,7 @@ Initial reads and recovery fill from zero to the actual percentage over about 0.
 
 ## Management commands
 
-Run these from the `v0.6.26` source or plugin-package root. Commands default to the separate **Testing** channel. Add `USAGE_TOPBAR_CHANNEL=release` to target production; `start` and `demo` use the selected installed app under `/Applications`.
+Run these from the `v0.7.0` source or plugin-package root. Commands default to the separate **Testing** channel. Add `USAGE_TOPBAR_CHANNEL=release` to target production; `start` and `demo` use the selected installed app under `/Applications`.
 
 ```sh
 scripts/usage-topbar.sh status
@@ -90,21 +92,21 @@ Issues are public. Do not submit account credentials, API keys, access tokens, p
 
 Live mode reads Codex usage, reset times, and points; it calculates interface deltas and Codex window placement locally. On macOS 14+ with existing Screen Recording permission, it measures average luminance in a tiny title-bar region. It does not request permission automatically or perform OCR. OpenAI receives usage requests and normal connection metadata; interface statistics, window geometry, and color samples are not sent to third parties.
 
-Version 0.6.26 stores only the local quota history described below, never credentials, points, throughput, screenshots or window-color samples. Quitting stops monitoring; Codex's own data handling follows its settings.
+Version 0.7.0 stores only the local quota history described below, never credentials, points, throughput, screenshots or window-color samples. Quitting stops monitoring; Codex's own data handling follows its settings.
 
-The minimum deployment target is macOS 13. Native Liquid Glass is used on macOS 26+, with SwiftUI material on earlier supported systems. See the [release notes](../RELEASE_NOTES.en.md) for tested and untested configurations. Intel Macs are not supported by 0.6.26.
+The minimum deployment target is macOS 13. Native Liquid Glass is used on macOS 26+, with SwiftUI material on earlier supported systems. See the [release notes](../RELEASE_NOTES.en.md) for tested and untested configurations. Intel Macs are not supported by 0.7.0.
 
 - Launch at login is off by default. The menu registers the macOS login item only when clicked; pending approval is shown without accepting system prompts. Click again to unregister.
 
-0.5.0 users can check for updates in the existing app; 0.4.0 users must install 0.6.26 manually once, then use “Check for Updates…” with the signed production feed. Download/install/relaunch require consent. Visibility preferences persist; login-item state is unchanged. No automatic health rollback; see [update limits](UPDATES.en.md).
+After 0.7.0 is published, 0.5.0 users can check for updates in the existing app; 0.4.0 users can currently install stable 0.5.0 manually once, then use “Check for Updates…” with the signed production feed. Download/install/relaunch require consent. Visibility preferences persist; login-item state is unchanged. No automatic health rollback; see [update limits](UPDATES.en.md).
 
-## Quota history (0.6.26)
+## Quota history (0.7.0)
 
 Left-click the menu-bar percentage for four days, then click the chart for a seven-day window. Right-click or Control-click keeps the settings menu. Scroll horizontally with two fingers and use Return to Now. The selector separates quota periods for the current account. The Y scale stays at 0–100%; hover near an actual sample for its timestamp, value and reset evidence interval.
 
 Fresh successful existing reads are stored every 30 minutes, plus startup/recovery/reset and unknown upward observations. The last actual observation is retained at interruption. Equal successful values form solid horizontal lines. Same-account/window interruptions shorter than two hours may connect as trends. At least two hours uses a faint horizontal last-value dash, never an invented slope; recovery starts a new segment. Reset and identity boundaries remain split. Circular arrows mark scheduled resets, a card plus arrow marks redeemed-card evidence, and a small star marks inferred special resets. Unknown rises do not celebrate. New events brighten once, never on history replay; Reduce Motion disables the pulse and elastic boundaries. Native scrolling supplies momentum; physical trackpad feel still needs acceptance.
 
-Missing account IDs disable history. Accounts and quota periods are isolated. Existing title-bar luminance provides light/dark contrast only, not custom Codex theme colors; the chart uses that monochrome palette.
+Missing account IDs disable history. Accounts and quota periods are isolated. Charts use the saved custom gradient vertically from 0–100%; horizontal scrolling preserves the color at each quota value. Both four- and seven-day views share the palette; data gaps are not filled.
 
 History starts with this version, stored only in `~/Library/Application Support/UsageTopbar/history-v1.json` for three rolling calendar months. It contains real timestamps, remaining percentages, window/reset times, SHA-256 account/card ID digests and card status/expiry evidence, never raw IDs, emails, tokens, points, screenshots or throughput. File/directory permissions are 0600/0700. No upload. Corrupt/unknown-version files are preserved and reported rather than overwritten.
 

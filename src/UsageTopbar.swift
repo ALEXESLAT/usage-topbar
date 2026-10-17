@@ -733,7 +733,7 @@ final class RateLimitClient {
             pendingID = 1
             armResponseTimeout()
             send(["method": "initialize", "id": 1, "params": [
-                "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": "0.6.11"],
+                "clientInfo": ["name": "usage-topbar", "title": "Usage Topbar", "version": AppVariant.version],
                 "capabilities": ["experimentalApi": true]
             ]])
         } catch {
@@ -1448,9 +1448,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         didStart = true
         if AppVariant.isTesting { UserDefaults.standard.register(defaults: [OverlayPreferences.hiddenKey: true]) }
         userHidden = preferences.userHidden
-        overlayModel.onProgressGradientChange = { [weak self] settings in self?.historyWindows.curveGradient=settings }
-        if AppVariant.isTesting { overlayModel.progressGradient=gradientPreferences.load() }
-        historyWindows.curveGradient=overlayModel.progressGradient
+        configureGradients()
         configureApplicationIcon()
         configureStatusItem()
         configurePanel()
@@ -1533,6 +1531,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         panel.contentView = hostingView
     }
 
+    private func configureGradients() {
+        overlayModel.onProgressGradientChange = { [weak self] settings in self?.historyWindows.curveGradient=settings }
+        overlayModel.progressGradient=gradientPreferences.load()
+        historyWindows.curveGradient=overlayModel.progressGradient
+    }
+
     private func configureStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = AppVariant.statusPrefix + " --%"
@@ -1540,26 +1544,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.imagePosition = .imageLeading
         statusItem.button?.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
         statusItem.button?.toolTip = "Usage Topbar — Codex remaining usage"
+        statusMenu = makeStatusMenu()
+        updateLoginItemMenu()
+        statusItem.button?.target = self
+        statusItem.button?.action = #selector(statusClicked)
+        statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+    }
+
+    // Construct without presenting: both variants share the same feature menu.
+    private func makeStatusMenu() -> NSMenu {
         let menu = NSMenu()
         if AppVariant.isTesting {
-            let label = menu.addItem(withTitle: AppVariant.name + " · 0.6.19 (44)", action: nil, keyEquivalent: "")
+            let label = menu.addItem(withTitle: AppVariant.name + " · " + AppVariant.versionLabel, action: nil, keyEquivalent: "")
             label.isEnabled = false
             menu.addItem(.separator())
         }
         menu.addItem(withTitle: "立即刷新", action: #selector(refreshNow), keyEquivalent: "r")
         menu.addItem(withTitle: "显示/隐藏浮层", action: #selector(togglePanel), keyEquivalent: "h")
-        if AppVariant.isTesting { menu.addItem(withTitle:"渐变设置…",action:#selector(showGradientSettings),keyEquivalent:"") }
+        menu.addItem(withTitle:"渐变设置…",action:#selector(showGradientSettings),keyEquivalent:"")
         menu.addItem(.separator())
         loginItemMenu = menu.addItem(withTitle: "开机自启", action: #selector(toggleLoginItem), keyEquivalent: "")
         menu.delegate = self
-        updateLoginItemMenu()
         if !AppVariant.isTesting { menu.addItem(withTitle: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "") }
         menu.addItem(withTitle: "退出 " + AppVariant.name, action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
-        statusMenu = menu
-        statusItem.button?.target = self
-        statusItem.button?.action = #selector(statusClicked)
-        statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        return menu
     }
 
     @objc private func statusClicked() {
@@ -1924,7 +1933,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         historyWindows.dark = isDarkBackground
     }
 
-    @objc private func showGradientSettings() { if AppVariant.isTesting { gradientEditor.show() } }
+    @objc private func showGradientSettings() { gradientEditor.show() }
     @MainActor @objc private func checkForUpdates() { appUpdater.checkForUpdates() }
     @objc private func refreshNow() { rateClient?.refresh() }
     @objc private func togglePanel() {

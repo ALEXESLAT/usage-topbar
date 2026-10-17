@@ -2,6 +2,11 @@ import Foundation
 import CryptoKit
 
 enum AppVariant {
+    static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development" }
+    static var versionLabel: String {
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+        return "\(version) (\(build))"
+    }
     #if USAGE_TOPBAR_TESTING
     static let isTesting = true
     static let name = "Usage Topbar 测试版"

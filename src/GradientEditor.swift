@@ -120,8 +120,12 @@ final class ProgressGradientEditorController:NSObject,NSWindowDelegate {
     private let preferences:ProgressGradientPreferences
     init(model:OverlayModel,preferences:ProgressGradientPreferences) { self.model=model;self.preferences=preferences }
     func show() {
-        guard AppVariant.isTesting else { return }
-        if let window { NSApp.activate(ignoringOtherApps:true);window.makeKeyAndOrderFront(nil);return }
+        let window=prepareWindow()
+        NSApp.activate(ignoringOtherApps:true);window.makeKeyAndOrderFront(nil)
+    }
+    // Creating the editor has no activation or presentation side effects.
+    func prepareWindow() -> NSWindow {
+        if let window { return window }
         let session=ProgressGradientSession(original:model.progressGradient,preview:{ [weak model] settings in model?.progressGradient=settings },persist:{ [preferences] in preferences.save($0) })
         self.session=session
         let view=ProgressGradientEditorView(session:session,save:{ [weak self,weak session] in
@@ -129,8 +133,8 @@ final class ProgressGradientEditorController:NSObject,NSWindowDelegate {
         },cancel:{ [weak self] in self?.window?.close() })
         let host=NSHostingView(rootView:view)
         let w=NSWindow(contentRect:CGRect(x:0,y:0,width:520,height:440),styleMask:[.titled,.closable],backing:.buffered,defer:false)
-        w.title="渐变设置 · 测试版";w.contentView=host;w.setContentSize(host.fittingSize);w.isReleasedWhenClosed=false;w.delegate=self
-        window=w;w.center();NSApp.activate(ignoringOtherApps:true);w.makeKeyAndOrderFront(nil)
+        w.title=AppVariant.isTesting ? "渐变设置 · 测试版" : "渐变设置";w.contentView=host;w.setContentSize(host.fittingSize);w.isReleasedWhenClosed=false;w.delegate=self
+        window=w;w.center();return w
     }
     func windowWillClose(_ notification:Notification) { session?.cancel();session=nil;window=nil }
 }

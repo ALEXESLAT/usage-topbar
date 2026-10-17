@@ -16,13 +16,13 @@ See your remaining allowance at a glance while Codex is running, without clickin
 
 *Rendered with the actual 0.4.0 UI components, simulated data, and a static dark background; live Liquid Glass refraction is not shown.*
 
-**0.6.26 adds local quota history**: a four-day overview, scrollable seven-day detail, reset events and three-month retention. History saves on a serial background queue; hidden history views skip data refreshes.
+**The unpublished 0.7.0 candidate adds local quota history**: a four-day overview, scrollable seven-day detail, reset events and three-month retention. History saves on a serial background queue; hidden history views skip data refreshes.
 
 The history title bar blends into full-size content, retaining close controls and blank-area dragging. Testing history detail uses separate axis/point percentages and a bottom time label. The four-day popover uses one compact percentage and a locator dot; click to open seven-day detail. Local control and builds default to the isolated Testing app. Production requires explicit `USAGE_TOPBAR_CHANNEL=release` and is not replaced during testing iterations.
 
 History readouts and Return to Now use native Liquid Glass on macOS 26+, compatible material on older systems, and solid surfaces with Reduce Transparency. History follows the effective theme at runtime. The plot itself has no glass overlay.
 
-Testing menu → **Gradient settings** edits the main quota bar with movable color/alpha stops, preview, save/cancel and reset. The full-track gradient stays fixed as quota clips from the right. History uses full background blur and adaptive tint to keep background text from competing with the chart.
+0.7.0 Release and Testing menus → **Gradient settings** edits the main quota bar with movable color/alpha stops, preview, save/cancel and reset. The full-track gradient stays fixed as quota clips from the right. History uses full background blur and adaptive tint to keep background text from competing with the chart.
 
 ## Features
 

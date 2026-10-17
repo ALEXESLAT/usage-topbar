@@ -91,6 +91,6 @@ static void record(NSString *event) {
 - (BOOL)updater:(SPUUpdater *)updater shouldDownloadReleaseNotesForUpdate:(SUAppcastItem *)item { return NO; }
 @end
 int main(int argc,const char *argv[]) {
-    @autoreleasepool { NSApplication *app=NSApplication.sharedApplication; Harness *delegate=[Harness new]; app.delegate=delegate; [app setActivationPolicy:NSApplicationActivationPolicyAccessory]; [app run]; }
+    @autoreleasepool { NSApplication *app=NSApplication.sharedApplication; Harness *delegate=[Harness new]; app.delegate=delegate; [app setActivationPolicy:NSApplicationActivationPolicyProhibited]; [app run]; }
     return 0;
 }

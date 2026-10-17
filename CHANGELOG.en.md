@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0 (52, draft candidate)
+
+- Enable gradient loading, editing, preview, save/cancel and chart linkage in both Release and Testing, retaining separate preference domains.
+- Read menu/client versions from bundle metadata; add dual-configuration offscreen regression coverage.
+- 0.6.26 is withdrawn to draft; the public update feed remains on 0.5.0.
+
 ## 0.6.26
 
 - Encode and atomically save history snapshots on a serial background queue, coalescing changes during writes. Preserve retries and synchronous sleep/termination flushes; ignore stale completions.

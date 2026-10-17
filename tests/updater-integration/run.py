@@ -33,7 +33,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Server,directory=str(work)))
 threading.Thread(target=server.serve_forever,daemon=True).start();port=server.server_port
 run('xcrun','clang','-fobjc-arc','-Werror','-Wno-incompatible-pointer-types','-target','arm64-apple-macos13.0','-framework','Cocoa','-F',sdk,'-framework','Sparkle','-Wl,-rpath,@executable_path/../Frameworks',root/'tests/updater-integration/Host.m','-o',work/'Host')
-run('xcrun','swiftc',root/'src/OverlayPreferences.swift',root/'tests/updater-integration/PreferencesProbe.swift','-target','arm64-apple-macos13.0','-o',work/'PreferencesProbe')
+run('xcrun','swiftc',root/'src/OverlayPreferences.swift',root/'src/ProgressGradient.swift',root/'tests/updater-integration/PreferencesProbe.swift','-module-cache-path',work/'swift-cache','-target','arm64-apple-macos13.0','-o',work/'PreferencesProbe')
 results=[]
 try:
  for case in a.cases.split(','):

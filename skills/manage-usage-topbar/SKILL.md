@@ -5,7 +5,7 @@ description: Start, stop, preview, rebuild, or inspect the local Usage Topbar ma
 
 # Manage Usage Topbar
 
-Use the deterministic controller at `scripts/control.sh`. The public release is 0.6.26 (51), for Apple Silicon / macOS 13+. See [installation and usage](../../docs/USAGE.md).
+Use the deterministic controller at `scripts/control.sh`. The public stable release is 0.5.0 (24); 0.6.26 was withdrawn to draft and 0.7.0 (52) is an unpublished candidate, for Apple Silicon / macOS 13+. See [installation and usage](../../docs/USAGE.md).
 
 ## Authorized monitoring scope
 
@@ -47,6 +47,6 @@ Launch at login is an optional menu setting, off by default. Only a user click r
 
 The verification public key is in source; the private key stays in the maintainer Keychain. Key generation/export and publication require explicit authorization. Never create temporary signing keys. Building does not install or publish. See the [update guide](../../docs/UPDATES.en.md).
 
-## Test/production separation (0.6.26 development)
+## Test/production separation (0.7.0 candidate)
 
 All local controller commands now default to the Testing app (`UsageTopbarTest`, `local.alex.usage-topbar.testing`). Explicit `USAGE_TOPBAR_CHANNEL=release` selects production. Never use production stop/start/install commands during a testing iteration. Replace only `/Applications/UsageTopbar Testing.app` after verifying its bundle ID; preserve the production app and data. Test builds disable updates/login registration and default the overlay to hidden. Production upgrades are user-initiated after a separately authorized GitHub release.
