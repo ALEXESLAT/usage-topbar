@@ -1,22 +1,20 @@
-# Usage Topbar 0.5.0
+# Usage Topbar 0.6.26
 
 [English](RELEASE_NOTES.en.md)
 
-**0.5.0（build 24）· Apple Silicon / macOS 13+**
+**0.6.26（build 51）· Apple Silicon / macOS 13+**
 
-- 新增菜单“检查更新…”，使用 Sparkle 2.10.0 获取正式签名清单，下载经验证的新版并由用户确认安装、重启。
-- 默认不自动检查、下载或安装，不强制重启，不发送系统画像。
-- 保存手动显示/隐藏浮层的选择；重启和后续更新保持偏好，已有开机自启状态不变。
-- 冻结快照签名、精确身份/版本校验，以及发布前后 ZIP/feed/摘要一致性检查。
+- 新增本机额度历史：四天概览、可滚动七天详情、悬停读数及重置事件；保留三个月的真实记录和明确的数据缺口。
+- 保持原始历史数据，优化曲线与渐变缓存；隐藏和最小化的历史窗口在重新显示时刷新。
+- 历史快照后台串行保存，合并写入期间的新变化；失败后重试，睡眠与退出等待最后快照保存。
+- 正式版首次启动可安全接续 Testing 的真实历史：校验、去重、保留正式冲突记录并创建迁移备份。测试偏好和模拟数据不导入。
 
-**0.4.0 用户需手动安装一次本版**，随后可通过正式签名清单更新。应用内更新需用户确认，不强制重启。原有开机自启状态保留，新用户默认关闭。
+**0.5.0 用户在原应用中选择“检查更新…”，确认下载、安装和重启即可。** 不必先手动替换旧应用。0.4.0 及更早版本需手动安装。正式应用仍使用原身份、偏好域和签名更新通道；Testing 保持独立。
 
-**ad-hoc 签名、未经过 Apple 公证。** 浏览器下载带 quarantine 时，Gatekeeper 可能拦截；实际隔离下载评估已观察到拒绝。不能保证其他 Mac 首次打开顺畅，不提供安全绕过步骤。
+[DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.dmg) · [ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.zip) · [插件/源码](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/usage-topbar-plugin-0.6.26.zip) · [SHA-256](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/SHA256SUMS.txt)
 
-[DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) · [ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip) · [插件/源码](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/usage-topbar-plugin-0.5.0.zip) · [SHA-256](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/SHA256SUMS.txt)
+本机合成回归覆盖历史、迁移、图表、生命周期、启动、更新策略及包元数据；发布包使用原有公钥对应签名，并校验身份、精确版本/build及下载摘要。主线程保存路径优化不代表整机 CPU 或续航同比改善。真实长期运行、旧系统和物理触控板尚未全面验收。
 
-验证包括合成回归、启动、更新策略、元数据、嵌套签名及最终产物验签；隔离真实应用已完成标准 UI、HTTPS/CDN 升级与设置保留。受控下载重试、安装替换失败保留旧包及手动备份恢复已测。**没有自动健康回滚**；Developer ID、公证、全新 Mac、真实登录重启、任意磁盘故障和所有标准 UI 分支未验证。
+应用为 **ad-hoc 签名、未经过 Apple 公证**，首次安装仍可能被系统拦截；没有自动健康回滚。应用内更新由用户发起并确认，不自动下载或安装。
 
-正式身份和 main feed 不含测试替换；不使用模拟账户。继续沿用已有登录读取额度/卡，仅本机处理整机网速、窗口位置和已有录屏权限下的小区域明暗。无权限降级，不新增权限、不存截图、不识别文字、不兑换卡。退出停止请求与采样。
-
-[更新流程与验证边界](docs/UPDATES.md) · [使用与隐私](docs/USAGE.md)
+[更新流程与恢复边界](docs/UPDATES.md) · [使用与隐私](docs/USAGE.md)

@@ -12,8 +12,11 @@ with tempfile.TemporaryDirectory(prefix='usage-topbar-package-tests-') as tmp:
  def write(value):
   with zipfile.ZipFile(p,'w') as z:z.writestr('UsageTopbar.app/Contents/Info.plist',plistlib.dumps(value))
  write(info);assert gate.validate(p,version,build)['preflight']=='passed'
- for field,value in [('CFBundleIdentifier','wrong.app'),('CFBundleVersion','20'),('CFBundleVersion',str(int(build)+1)),('CFBundleShortVersionString','9.0'),('SUPublicEDKey','invalid'),('SURequireSignedFeed',False),('SUAutomaticallyUpdate',True)]:
-  bad=dict(info);bad[field]=value;write(bad)
+ for field,value in [('UsageTopbarHistorySource','simulation-switchable'),('UsageTopbarHistorySource',None),('CFBundleIdentifier','wrong.app'),('CFBundleVersion','20'),('CFBundleVersion',str(int(build)+1)),('CFBundleShortVersionString','9.0'),('SUPublicEDKey','invalid'),('SURequireSignedFeed',False),('SUAutomaticallyUpdate',True)]:
+  bad=dict(info)
+  if value is None: bad.pop(field,None)
+  else: bad[field]=value
+  write(bad)
   try:gate.validate(p,version,build)
   except ValueError:pass
   else:raise AssertionError('Accepted mismatch '+field)

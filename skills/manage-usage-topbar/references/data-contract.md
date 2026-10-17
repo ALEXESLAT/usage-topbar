@@ -16,7 +16,7 @@ For contrast adaptation, the companion uses ScreenCaptureKit to sample a 12×12 
 
 Throughput uses actual elapsed time and per-interface baselines; newly appearing interfaces, counter rollover, and long sampling gaps do not produce artificial spikes. Sleep stops monitoring; wake reconnects and obtains fresh data.
 
-The companion process keeps responses in memory only. It does not write snapshots, credentials, credit balances, interface statistics, window geometry, color samples, or screenshots to disk.
+Version 0.6.0 adds local quota history authorized for this feature: actual sample times, remaining percentages, quota periods/reset deadlines, one-way account/card ID digests, card status/expiry evidence and reset classifications. Three calendar months are retained. Missing account IDs disable recording. No credentials, raw IDs, email, balances, interface statistics, geometry, color samples or screenshots are persisted. See docs/USAGE.en.md for storage and classification boundaries.
 
 The release begins this monitoring on launch without a repeated dialog. Reset-card count and expiry details are included in the existing authenticated read; it never consumes a reset credit. Window tracking uses 0.2-second checks for the foreground target (including automatic hiding) and one-second checks in the background or when manually hidden, with activation/display/wake event checks. No login item is registered automatically, and no new credentials/permissions are created. Quitting stops timers and requests and terminates only this app’s own app-server child.
 

@@ -23,7 +23,7 @@ Explicit overlay visibility is stored as `overlay.userHidden` in the stable `loc
 ## Maintainer release procedure
 
 1. Increment version/build; run regression, startup, update policy, metadata and relevant installation tests. Production identity is `local.alex.usage-topbar`; never ship test identity/feed or a synthetic server in the production app.
-2. Build with `USAGE_TOPBAR_REQUIRE_UPDATER=1 scripts/build-overlay.sh`; verify arm64, deployment target, nested signatures and privacy. Package the final ZIP with `ditto -c -k --keepParent`.
+2. Build with `USAGE_TOPBAR_CHANNEL=release USAGE_TOPBAR_REQUIRE_UPDATER=1 scripts/build-overlay.sh`; verify arm64, deployment target, nested signatures and privacy. Package the final ZIP with `ditto -c -k --keepParent`.
 3. Run `scripts/sign-update.py` for exact identity/version checks. Only `--sign` accesses the existing Keychain account `ALEXESLAT.usage-topbar`. It signs a validated frozen snapshot, emits SHA-256 and rejects input mutation. Never export keys, pass them in environment variables, upload them to CI or routinely generate/rotate them.
 4. Generate and verify the final signed feed:
    ```sh

@@ -6,13 +6,21 @@
 
 运行 Codex 时，一眼就能看到剩余额度，无需点击左下角头像、进入二级菜单查看。把额度信息放在视线内，有助于缓解使用过程中的额度焦虑。
 
-**当前版本：0.5.0（build 24） · Apple Silicon（arm64） · macOS 13+**
+**公开版本：0.6.26（build 51） · Apple Silicon（arm64） · macOS 13+**
 
-[下载 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.dmg) · [下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.5.0) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/ALEXESLAT/usage-topbar/issues)
+[下载 DMG](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.dmg) · [下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.6.26/UsageTopbar-0.6.26-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.6.26) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/ALEXESLAT/usage-topbar/issues)
 
 ![Usage Topbar 匿名演示](assets/previews/usage-topbar-0.4.0.png)
 
 *由 0.4.0 实际界面组件渲染，使用模拟数据和静态深色背景；不展示实时 Liquid Glass 折射。*
+
+**0.6.26 新增本机额度历史**：四天概览、可滚动七天详情、重置事件和三个月记录；后台串行保存，隐藏历史窗口不执行数据刷新。
+
+历史窗口保留系统关闭控件，隐藏独立标题文字并将标题栏融入内容；空白区可拖动。历史详情提供左轴、交点百分比与底部时间三个独立标签；四天小浮窗使用单个轻量百分比和定位点，点击进入七天详情。本地控制和构建默认使用独立 Testing 应用，正式应用需显式选择 `USAGE_TOPBAR_CHANNEL=release`；测试迭代不替换正式版。
+
+历史提示与“回到现在”使用 macOS 26+ 原生 Liquid Glass，旧系统降级为材质；降低透明度时使用实色。界面沿用有效主题来源，运行时更新深浅外观；图表数据层不叠加玻璃。
+
+测试版右键菜单 → **渐变设置…** 可编辑主额度进度条的固定渐变。支持色标增删/拖动、颜色与透明度，先预览，再保存或取消；额度减少只从右侧裁切。历史背景采用完整模糊和自适应底色，避免后方文字干扰。
 
 ## 功能
 
@@ -41,7 +49,7 @@
 
 [使用与隐私](docs/USAGE.md) · [开发与贡献](CONTRIBUTING.md) · [发布说明](RELEASE_NOTES.md) · [自动检查](https://github.com/ALEXESLAT/usage-topbar/actions/workflows/ci.yml)
 
-通过本地 Codex app-server 向 OpenAI 读取用量；网卡统计和窗口处理在本机完成。应用自身不保存用量或凭据，详细数据范围见使用指南。
+通过本地 Codex app-server 向 OpenAI 读取用量；网卡统计和窗口处理在本机完成。0.6.26 将额度历史及账户/卡片 ID 的单向摘要保存在本机，保留三个月；不保存凭据，详细数据范围见使用指南。
 
 已完成本机模拟回归、构建与渲染；旧系统、物理多屏/刘海组合和真实账户长时间运行尚未实机覆盖。采用 [MIT 许可证](LICENSE)，版权署名 © 2026 ALEXESLAT。
 

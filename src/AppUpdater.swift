@@ -11,6 +11,9 @@ enum UpdatePolicy {
     static let bundleID = "local.alex.usage-topbar"
 
     static func configurationProblem(_ info: [String: Any]) -> String? {
+        #if USAGE_TOPBAR_TESTING
+        return "测试版不连接正式更新通道。"
+        #else
         guard info["CFBundleIdentifier"] as? String == bundleID else { return "应用标识不匹配。" }
         guard info["SUFeedURL"] as? String == feed else { return "更新源配置不正确。" }
         for name in ["SURequireSignedFeed", "SUVerifyUpdateBeforeExtraction"] {
@@ -28,6 +31,7 @@ enum UpdatePolicy {
             return "此开发版尚未配置更新验证公钥。当前应用保持不变；请使用正式发布页的安装包。"
         }
         return nil
+        #endif
     }
 
     static func permits(version: String, installed: String, download: URL?) -> Bool {
@@ -37,9 +41,10 @@ enum UpdatePolicy {
               url.scheme == "https", url.host == "github.com", url.port == nil,
               url.user == nil, url.password == nil, url.query == nil, url.fragment == nil else { return false }
         let parts = url.path.split(separator: "/").map(String.init)
-        return parts.count == 6 && parts[0...3] == ["ALEXESLAT", "usage-topbar", "releases", "download"]
-            && parts[4].hasPrefix("v") && parts[5].hasPrefix("UsageTopbar-")
-            && parts[5].hasSuffix("-macOS-arm64.zip")
+        guard parts.count == 6, parts[0...3] == ["ALEXESLAT", "usage-topbar", "releases", "download"],
+              parts[4].range(of: "^v[0-9]+\\.[0-9]+\\.[0-9]+$", options: .regularExpression) != nil else { return false }
+        let releaseVersion = String(parts[4].dropFirst())
+        return parts[5] == "UsageTopbar-\(releaseVersion)-macOS-arm64.zip"
     }
 }
 
