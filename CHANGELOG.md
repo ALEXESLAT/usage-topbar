@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.7.3 (55)
+
+- 收紧缺测期间未用卡证据：相同快照不足以推断特殊重置；修复旧版本测试并将恢复测试接入 CI。
+- Preserve uncertainty across unseen intervals; use independent version fixtures and run recovery regressions in CI.
+
 ## 0.7.2 (54)
 
 - 按历史预定时间和用卡证据区分特殊、用卡及自动重置；实时和回放一致，证据不足不强加标志或绿条。

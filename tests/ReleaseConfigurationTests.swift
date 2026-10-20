@@ -42,7 +42,7 @@ require(entry != nil && entry!.isEnabled && entry!.target === delegate,"both var
 require(entry!.action==NSSelectorFromString("showGradientSettings"),"menu dispatches real editor method")
 require(menu.items.contains{$0.title=="检查更新…"} == !AppVariant.isTesting,"updates are production-only")
 require(!menu.items.contains{$0.title.contains("0.6.19")},"no stale hardcoded version")
-require(AppVariant.versionLabel=="0.7.0 (52)","version is read from bundled metadata")
+require(CommandLine.arguments.count==3 && AppVariant.versionLabel==CommandLine.arguments[2],"version is read from independently seeded bundle metadata")
 if AppVariant.isTesting {require(menu.items.contains{$0.title.contains(AppVariant.versionLabel)},"Testing label uses actual bundle version")}
 for preference:Bool? in [nil,true,false] { if !AppVariant.isTesting {require(!HistorySourcePolicy.usesSimulation(preference:preference),"production never selects simulated history")} }
 let editor=delegate.testEditor

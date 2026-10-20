@@ -121,14 +121,16 @@ enum HistoryResetClassifier {
             return event(.cycle, "scheduled-deadline", exact: single ? oldReset : nil, inferred: true)
         }
         // Compare against the deadline captured BEFORE the reset, never the renewed deadline.
-        if let oldReset = a.resetsAt, a.time < oldReset,
+        if !gap, let oldReset = a.resetsAt, a.time < oldReset,
            b.time < oldReset, b.remaining == 100, cardsUnchanged(a, b) {
             return event(.special, "early-full-reset+unchanged-complete-cards", inferred: true)
         }
         return event(.unknown, "insufficient-reset-evidence")
     }
     static func cardsUnchanged(_ a: HistoryReading, _ b: HistoryReading) -> Bool {
-        guard let x = a.cards, let y = b.cards, let n = a.availableCards, let m = b.availableCards,
+        // Matching snapshots cannot rule out cards acquired and redeemed during an unseen interval.
+        guard b.time - a.time <= QuotaHistoryStore.continuityLimit,
+              let x = a.cards, let y = b.cards, let n = a.availableCards, let m = b.availableCards,
               x.count == n, y.count == m, n == m,
               x.allSatisfy({ $0.status == "available" && ($0.expiresAt ?? .infinity) > b.time }),
               y.allSatisfy({ $0.status == "available" }), Set(x.map(\.id)) == Set(y.map(\.id)) else { return false }

@@ -7,19 +7,19 @@
 
 运行 Codex 时，一眼就能看到剩余额度，无需点击左下角头像、进入二级菜单查看。把额度信息放在视线内，有助于缓解使用过程中的额度焦虑。
 
-**公开版本：0.7.2（build 54） · Apple Silicon（arm64） · macOS 13+**
+**公开版本：0.7.3（build 55） · Apple Silicon（arm64） · macOS 13+**
 
-[下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.7.2/UsageTopbar-0.7.2-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.7.2) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/ALEXESLAT/usage-topbar/issues)
+[下载 ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.7.3/UsageTopbar-0.7.3-macOS-arm64.zip) · [发布页](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.7.3) · [安装与使用](docs/USAGE.md) · [更新记录](CHANGELOG.md) · [问题反馈](https://github.com/ALEXESLAT/usage-topbar/issues)
 
 ![Usage Topbar 匿名演示](assets/previews/usage-topbar-0.4.0.png)
 
 *由 0.4.0 实际界面组件渲染，使用模拟数据和静态深色背景；不展示实时 Liquid Glass 折射。*
 
-**0.7.2**：左键百分比看四天预览，点曲线打开七天滚动历史；右键 → **渐变设置…** 编辑色标、透明度与配色，并同步横条和两种历史窗口。详情十字定位、小窗简洁悬停，外观随深浅主题调整。
+**0.7.3**：左键百分比看四天预览，点曲线打开七天滚动历史；右键 → **渐变设置…** 编辑色标、透明度与配色，并同步横条和两种历史窗口。详情十字定位、小窗简洁悬停，外观随深浅主题调整。
 
 正常每30分钟记录新鲜额度，保留三个月；缺口不补造，部分重置属于推断。曲线缓存、隐藏窗口暂停刷新与后台串行保存减少重复工作，不代表已证明能耗下降。更新保留正式设置，历史迁移含备份和失败回退；没有自动健康回滚。
 
-[新版功能、入口与验证范围](RELEASE_NOTES.md)。当前正式版本为0.7.2。
+[新版功能、入口与验证范围](RELEASE_NOTES.md)。当前正式版本为0.7.3。
 
 ## 功能
 
@@ -48,7 +48,7 @@
 
 [使用与隐私](docs/USAGE.md) · [开发与贡献](CONTRIBUTING.md) · [发布说明](RELEASE_NOTES.md) · [自动检查](https://github.com/ALEXESLAT/usage-topbar/actions/workflows/ci.yml)
 
-通过本地 Codex app-server 向 OpenAI 读取用量；网卡统计和窗口处理在本机完成。0.7.2 候选版将额度历史及账户/卡片 ID 的单向摘要保存在本机，保留三个月；不保存凭据，详细数据范围见使用指南。
+通过本地 Codex app-server 向 OpenAI 读取用量；网卡统计和窗口处理在本机完成。0.7.3 候选版将额度历史及账户/卡片 ID 的单向摘要保存在本机，保留三个月；不保存凭据，详细数据范围见使用指南。
 
 已完成本机模拟回归、构建与渲染；旧系统、物理多屏/刘海组合和真实账户长时间运行尚未实机覆盖。采用 [MIT 许可证](LICENSE)，版权署名 © 2026 ALEXESLAT。
 

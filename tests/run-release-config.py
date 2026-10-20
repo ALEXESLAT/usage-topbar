@@ -14,7 +14,8 @@ with tempfile.TemporaryDirectory(prefix='usage-release-config-') as tmp:
  for channel,flags in [('release',[]),('testing',['-DUSAGE_TOPBAR_TESTING'])]:
   app=p/(channel+'.app');binary=app/'Contents/MacOS/Probe';binary.parent.mkdir(parents=True)
   info=plistlib.loads((root/'app/Info.plist').read_bytes())
-  info.update(CFBundleIdentifier='local.alex.usage.configtest.'+str(uuid.uuid4()),CFBundleExecutable='Probe')
+  fixture_version,fixture_build=('9.8.7','987') if channel=='release' else ('8.7.6','876')
+  info.update(CFBundleShortVersionString=fixture_version,CFBundleVersion=fixture_build,CFBundleIdentifier='local.alex.usage.configtest.'+str(uuid.uuid4()),CFBundleExecutable='Probe')
   (app/'Contents/Info.plist').write_bytes(plistlib.dumps(info))
   subprocess.run(['xcrun','swiftc',*flags,str(p/'main.swift'),'-o',str(binary),'-target','arm64-apple-macos13.0','-module-cache-path',str(p/'cache'),'-framework','AppKit','-framework','CoreGraphics','-framework','IOKit','-framework','Network','-framework','ScreenCaptureKit'],check=True)
-  subprocess.run([str(binary),str(p)],check=True,timeout=45)
+  subprocess.run([str(binary),str(p),f'{fixture_version} ({fixture_build})'],check=True,timeout=45)

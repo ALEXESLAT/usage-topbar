@@ -1,7 +1,9 @@
-# Usage Topbar 0.7.2
+# Usage Topbar 0.7.3
 
-修正额度重置分类：使用历史采样当时保存的预定重置时间和用卡记录。提前恢复且完整卡记录未变化时显示特殊重置星标；有用卡证据时显示用卡重置，可靠连续观测到期时显示自动重置。缺测或证据不足的未知记录不强加重置标志和绿条。实时记录与历史回放使用同一规则，不覆盖历史日期或填补缺测值。
+收紧重置分类的证据边界：历史采样继续保存当时的预定重置时间；缺测期间即使前后卡列表相同，也不据此推断未用卡或特殊重置。连续新鲜观测支持的提前重置、到期重置，以及明确用卡证据仍按对应类型显示。未知记录不强加标志或绿条，历史回放使用同一规则。
 
-Classify resets using the scheduled deadline saved before the reset and card evidence. Early full recovery with complete unchanged cards is special; redeemed-card evidence takes priority, and reliably observed scheduled resets retain their cycle type. Missing evidence does not force reset markers or green bands. Live collection and history replay share the same rules without rewriting historical deadlines.
+修复测试中固定旧版本号的问题，使用独立版本元数据验证，并将恢复与回放检查接入 GitHub Actions。
 
-0.7.2（build 54），Apple Silicon arm64，macOS 13+。针对性分类、回放和历史日期保存检查通过。沿用 ad-hoc 签名，未经过 Apple 公证。
+Tighten reset evidence boundaries: matching card snapshots across an unseen interval do not prove that no card was used. Preserve each sample's scheduled deadline, classify supported fresh observations and redeemed-card evidence, and leave uncertain history unmarked. Fix stale version assertions using independent fixture metadata and include recovery/replay checks in CI.
+
+0.7.3（build 55），Apple Silicon arm64，macOS 13+。沿用 ad-hoc 签名，未经过 Apple 公证。

@@ -30,6 +30,8 @@ jobs:
         run: python3 tests/run-migration.py
       - name: Quota history regressions
         run: python3 tests/run-history.py
+      - name: Reset evidence and history replay regressions
+        run: python3 tests/run-recovery.py
       - name: Gradient settings and fixed-track rendering
         run: |
           python3 tests/run-gradient.py

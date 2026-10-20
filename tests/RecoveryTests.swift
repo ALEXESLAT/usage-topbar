@@ -8,10 +8,10 @@ func reading(_ t:Double,_ value:Double,reset:Double?=604800,cards:[HistoryCard]?
  resetsAt:reset.map {base.timeIntervalSince1970+$0},duration:604800,cards:cards,availableCards:count)
 }
 func feed(_ s:QuotaHistoryStore,_ r:HistoryReading) { s.receive([r],now:Date(timeIntervalSince1970:r.time)) }
-let before=reading(0,0),after=reading(10800,100,reset:nil)
+let before=reading(0,0),after=reading(60,100,reset:nil)
 let store=QuotaHistoryStore(file:nil,now:base)
 var events=0;store.onNewEvent={_ in events+=1}
-feed(store,before);store.unavailable();feed(store,after);feed(store,reading(12600,100))
+feed(store,before);feed(store,after);feed(store,reading(1860,100))
 let special=store.points[1].event!
 check(special.kind == .special && special.inferred && special.exactTime==nil,"early full recovery with unchanged complete cards is special; new deadline not required")
 check(events==1 && store.points.last!.event==nil,"repeated 100 does not repeat reset")
@@ -34,7 +34,7 @@ let legacyEvent=HistoryReset(kind:.unknown,lowerBound:before.time,upperBound:aft
 for known in [true,false] {
  let a=known ? before : reading(0,0,reset:nil,cards:nil,count:nil)
  let b=known ? after : reading(10800,100,reset:nil,cards:nil,count:nil)
- let old=[HistoryPoint(reading:a,gapBefore:false,event:nil),HistoryPoint(reading:b,gapBefore:true,event:legacyEvent,gapReason:"read-unavailable")]
+ let old=[HistoryPoint(reading:a,gapBefore:false,event:nil),HistoryPoint(reading:b,gapBefore:!known,event:legacyEvent,gapReason:"read-unavailable")]
  let data=try JSONEncoder().encode(Archive(version:1,points:old));try data.write(to:file)
  let replay=QuotaHistoryStore(file:file,now:base.addingTimeInterval(10800));feed(replay,b)
  let visible=replay.visiblePoints(series:a.series)
@@ -56,3 +56,12 @@ try JSONEncoder().encode(Archive(version:1,points:cycleRows)).write(to:file)
 let cycleReplay=QuotaHistoryStore(file:file,now:base.addingTimeInterval(604810));feed(cycleReplay,cycleAfter)
 check(cycleReplay.visiblePoints(series:before.series).last!.event?.kind == .unknown,"old cycle label cannot override ambiguous saved gap evidence")
 print("PASS live/replay parity and reconsideration of unsupported old classifications")
+
+for cards:[HistoryCard] in [[],[available]] {
+ let a=reading(0,0,cards:cards,count:cards.count),b=reading(10800,100,cards:cards,count:cards.count)
+ for gap in [false,true] {
+  check(HistoryResetClassifier.classify(previous:a,current:b,gap:gap)?.showsReset==false,"long unseen interval cannot prove no use, even with matching empty or populated snapshots")
+ }
+}
+check(HistoryResetClassifier.classify(previous:before,current:after,gap:true)?.showsReset==false,"explicit interruption remains unknown even when short")
+print("PASS conservative empty/populated snapshot and explicit-gap evidence boundaries")
