@@ -91,7 +91,7 @@ struct HistoryReset: Codable, Equatable {
     let exactTime: Double?
     let inferred: Bool
     let source: String
-    var showsReset: Bool { kind != .unknown || source == "gap-recovery-full" }
+    var showsReset: Bool { kind != .unknown }
 }
 struct HistoryPoint: Codable, Equatable {
     let reading: HistoryReading
@@ -103,7 +103,8 @@ struct HistoryPoint: Codable, Equatable {
 enum HistoryResetClassifier {
     static func classify(previous a: HistoryReading, current b: HistoryReading, gap: Bool = false, gapReason: String? = nil) -> HistoryReset? {
         guard a.account == b.account, a.series == b.series, b.time > a.time,
-              b.remaining > a.remaining else { return nil }
+              b.remaining > a.remaining,
+              !["account-change", "identity-unavailable", "startup-or-account-change"].contains(gapReason ?? "") else { return nil }
         func event(_ kind: HistoryResetKind, _ source: String, exact: Double? = nil, inferred: Bool = false) -> HistoryReset {
             HistoryReset(kind: kind, lowerBound: a.time, upperBound: b.time, exactTime: exact, inferred: inferred, source: source)
         }
@@ -112,28 +113,22 @@ enum HistoryResetClassifier {
            before.contains(where: { old in old.status == "available" && after.contains(where: { $0.id == old.id && $0.status == "redeemed" }) }) {
             return event(.card, "card-status:available→redeemed")
         }
-        if let oldReset = a.resetsAt, let newReset = b.resetsAt,
+        if !gap, cardsUnchanged(a, b), let oldReset = a.resetsAt, let newReset = b.resetsAt,
            a.time < oldReset, oldReset <= b.time, newReset > oldReset,
            abs((newReset - oldReset) / a.duration - ((newReset - oldReset) / a.duration).rounded()) < 1.0 / a.duration {
             // Exact scheduled boundary is known, but multiple missed cycles remain an interval.
             let single = newReset - oldReset <= a.duration + 1
             return event(.cycle, "scheduled-deadline", exact: single ? oldReset : nil, inferred: true)
         }
-        if let oldReset = a.resetsAt, let newReset = b.resetsAt,
-           b.time < oldReset, b.remaining == 100, newReset > oldReset,
-           abs(newReset - b.time - b.duration) <= 60, cardsUnchanged(a, b) {
-            return event(.special, "early-full-reset+full-period+unchanged-complete-cards", inferred: true)
-        }
-        if gap, b.remaining == 100,
-           !["account-change", "identity-unavailable", "startup-or-account-change"].contains(gapReason ?? "") {
-            // The recovery is observed; its cause and precise time remain unknown.
-            return event(.unknown, "gap-recovery-full", inferred: true)
+        // Compare against the deadline captured BEFORE the reset, never the renewed deadline.
+        if let oldReset = a.resetsAt, a.time < oldReset,
+           b.time < oldReset, b.remaining == 100, cardsUnchanged(a, b) {
+            return event(.special, "early-full-reset+unchanged-complete-cards", inferred: true)
         }
         return event(.unknown, "insufficient-reset-evidence")
     }
     static func cardsUnchanged(_ a: HistoryReading, _ b: HistoryReading) -> Bool {
-        guard b.time - a.time <= QuotaHistoryStore.continuityLimit,
-              let x = a.cards, let y = b.cards, let n = a.availableCards, let m = b.availableCards,
+        guard let x = a.cards, let y = b.cards, let n = a.availableCards, let m = b.availableCards,
               x.count == n, y.count == m, n == m,
               x.allSatisfy({ $0.status == "available" && ($0.expiresAt ?? .infinity) > b.time }),
               y.allSatisfy({ $0.status == "available" }), Set(x.map(\.id)) == Set(y.map(\.id)) else { return false }
@@ -233,7 +228,7 @@ enum HistoryMigration {
     private static func decode(_ data: Data) throws -> Archive {
         let archive = try JSONDecoder().decode(Archive.self, from:data)
         func digest(_ value: String) -> Bool { value.count == 64 && value.allSatisfy { "0123456789abcdef".contains($0) } }
-        let sources = Set(["card-status:available→redeemed", "scheduled-deadline", "early-full-reset+full-period+unchanged-complete-cards", "insufficient-reset-evidence", "gap-recovery-full"])
+        let sources = Set(["card-status:available→redeemed", "scheduled-deadline", "early-full-reset+full-period+unchanged-complete-cards", "insufficient-reset-evidence", "gap-recovery-full", "early-full-reset+unchanged-complete-cards"])
         guard archive.version == 1, archive.points.allSatisfy({ p in
             let r=p.reading, parts=r.series.split(separator:"/")
             guard digest(r.account), parts.count==3, parts[0]=="codex",
@@ -440,15 +435,12 @@ final class QuotaHistoryStore: HistoryDataSource {
             guard point.reading.series == series else { continue }
             var displayed = point
             if crossedAccount { displayed.gapReason = "account-change"; displayed.gapBefore = true }
-            // Replay old archives without rewriting samples or inventing gap values.
-            if displayed.event == nil || displayed.event?.kind == .unknown,
-               let previous = result.last,
-               let recovered = HistoryResetClassifier.classify(previous: previous.reading, current: displayed.reading,
-                    gap: displayed.gapBefore, gapReason: displayed.gapReason),
-               recovered.source == "gap-recovery-full" {
-                displayed.event = recovered
+            // Use the same evidence rules as live collection, without rewriting the archive.
+            if let previous = result.last {
+                displayed.event = crossedAccount ? nil : HistoryResetClassifier.classify(
+                    previous: previous.reading, current: displayed.reading,
+                    gap: displayed.gapBefore, gapReason: displayed.gapReason)
             }
-            if crossedAccount, displayed.event?.source == "gap-recovery-full" { displayed.event = nil }
             result.append(displayed); crossedAccount = false
         }
         return result

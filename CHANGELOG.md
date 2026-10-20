@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.7.2 (54)
+
+- 按历史预定时间和用卡证据区分特殊、用卡及自动重置；实时和回放一致，证据不足不强加标志或绿条。
+- Classify resets from historical deadlines and card evidence; keep live/replay behavior consistent and avoid unsupported reset markers.
+
 ## 0.7.1 (53)
 
 - 缺测后恢复 100% 显示推断重置箭头和绿条，支持旧历史回放；保留未知来源和时间，不填补缺测值，避免重复标记。

@@ -1,7 +1,7 @@
-# Usage Topbar 0.7.1
+# Usage Topbar 0.7.2
 
-修复额度历史在缺测后恢复到 100% 时缺少重置箭头和绿条的问题，已有历史也会重新识别。标记位于首次恢复观测点，注明推断；不推定实际重置时间或来源，不填补缺测数值。连续 100% 不重复标记，保留账号隔离。
+修正额度重置分类：使用历史采样当时保存的预定重置时间和用卡记录。提前恢复且完整卡记录未变化时显示特殊重置星标；有用卡证据时显示用卡重置，可靠连续观测到期时显示自动重置。缺测或证据不足的未知记录不强加重置标志和绿条。实时记录与历史回放使用同一规则，不覆盖历史日期或填补缺测值。
 
-Fix missing reset markers and green bands when quota returns to 100% after missing observations, including existing history. The marker uses the first recovery observation and is disclosed as inferred; the exact reset time and cause remain unknown. Repeated full readings do not create duplicate markers.
+Classify resets using the scheduled deadline saved before the reset and card evidence. Early full recovery with complete unchanged cards is special; redeemed-card evidence takes priority, and reliably observed scheduled resets retain their cycle type. Missing evidence does not force reset markers or green bands. Live collection and history replay share the same rules without rewriting historical deadlines.
 
-0.7.1（build 53），Apple Silicon arm64，macOS 13+。已通过针对性恢复/回放/账号隔离检查及正式构建与包签名验证。沿用 ad-hoc 签名，未经过 Apple 公证。
+0.7.2（build 54），Apple Silicon arm64，macOS 13+。针对性分类、回放和历史日期保存检查通过。沿用 ad-hoc 签名，未经过 Apple 公证。

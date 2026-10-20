@@ -245,11 +245,7 @@ enum HistoryChartGeometry {
 }
 
 final class HistoryChartView: NSView {
-    var points: [HistoryPoint] = [] { didSet {
-        cacheSize=nil;clearCrosshair();needsDisplay = true
-        toolTip = points.contains { $0.event?.source == "gap-recovery-full" }
-            ? "缺测后恢复 100%：重置为推断，标记位于首次恢复观测点；实际时间和来源未知。" : nil
-    } }
+    var points: [HistoryPoint] = [] { didSet { cacheSize=nil;clearCrosshair();needsDisplay = true } }
     var start = Date().timeIntervalSince1970 - 4 * 86400.0
     var end = Date().timeIntervalSince1970
     var now: () -> Double = { Date().timeIntervalSince1970 }
