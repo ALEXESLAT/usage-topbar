@@ -4,22 +4,22 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>UsageTopbar</title>
         <item>
-            <title>0.7.1</title>
-            <pubDate>Tue, 20 Oct 2026 09:35:49 +0800</pubDate>
-            <sparkle:version>53</sparkle:version>
-            <sparkle:shortVersionString>0.7.1</sparkle:shortVersionString>
+            <title>0.7.2</title>
+            <pubDate>Tue, 20 Oct 2026 11:56:08 +0800</pubDate>
+            <sparkle:version>54</sparkle:version>
+            <sparkle:shortVersionString>0.7.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.7.1/UsageTopbar-0.7.1-macOS-arm64.zip" length="1957519" type="application/octet-stream" sparkle:edSignature="AZghmSiLnEoDJcq9aMa0oatCXo4s2p4k16XwuLbx154fEC0IKk/R9L6rWnUfKkKfTKIalpKXYptgKlVjQvEtBg=="></enclosure>
-        <description sparkle:descriptionFormat="plain-text"># Usage Topbar 0.7.1
+            <enclosure url="https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.7.2/UsageTopbar-0.7.2-macOS-arm64.zip" length="1957187" type="application/octet-stream" sparkle:edSignature="gg/AwA0xvoDeDIcFF4u9/qPHwgQDxzsMa+ihEzF943z3qGlKvlNepOMToTG80dITh/AGjAYXC5MEEFOpen34Dw=="></enclosure>
+        <description sparkle:descriptionFormat="plain-text"># Usage Topbar 0.7.2
 
-修复额度历史在缺测后恢复到 100% 时缺少重置箭头和绿条的问题，已有历史也会重新识别。标记位于首次恢复观测点，注明推断；不推定实际重置时间或来源，不填补缺测数值。连续 100% 不重复标记，保留账号隔离。
+修正额度重置分类：使用历史采样当时保存的预定重置时间和用卡记录。提前恢复且完整卡记录未变化时显示特殊重置星标；有用卡证据时显示用卡重置，可靠连续观测到期时显示自动重置。缺测或证据不足的未知记录不强加重置标志和绿条。实时记录与历史回放使用同一规则，不覆盖历史日期或填补缺测值。
 
-Fix missing reset markers and green bands when quota returns to 100% after missing observations, including existing history. The marker uses the first recovery observation and is disclosed as inferred; the exact reset time and cause remain unknown. Repeated full readings do not create duplicate markers.
+Classify resets using the scheduled deadline saved before the reset and card evidence. Early full recovery with complete unchanged cards is special; redeemed-card evidence takes priority, and reliably observed scheduled resets retain their cycle type. Missing evidence does not force reset markers or green bands. Live collection and history replay share the same rules without rewriting historical deadlines.
 
-0.7.1（build 53），Apple Silicon arm64，macOS 13+。已通过针对性恢复/回放/账号隔离检查及正式构建与包签名验证。沿用 ad-hoc 签名，未经过 Apple 公证。</description></item>
+0.7.2（build 54），Apple Silicon arm64，macOS 13+。针对性分类、回放和历史日期保存检查通过。沿用 ad-hoc 签名，未经过 Apple 公证。</description></item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: jBLiZa9ZeCtZFmn5YANGWbrxFTSvD26sNBhE6P8bJnz8HRLnA/2hsVxjwaooPvnYPQ1jSkTuOnQi4zVmUZX4CQ==
-length: 2032
+edSignature: qJEb+6eYG/jhG0Yvb6VctEO+Rz/VfSG7l8GhPpL7tWZSPT9hhPKscK0oMykI1mrSKndvvRAEhTCOmALWieZxBQ==
+length: 2237
 -->
