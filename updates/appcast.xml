@@ -4,33 +4,22 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>UsageTopbar</title>
         <item>
-            <title>0.7.0</title>
-            <pubDate>Sat, 17 Oct 2026 12:05:35 GMT</pubDate>
-            <sparkle:version>52</sparkle:version>
-            <sparkle:shortVersionString>0.7.0</sparkle:shortVersionString>
+            <title>0.7.1</title>
+            <pubDate>Tue, 20 Oct 2026 09:35:49 +0800</pubDate>
+            <sparkle:version>53</sparkle:version>
+            <sparkle:shortVersionString>0.7.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.7.0/UsageTopbar-0.7.0-macOS-arm64.zip" length="1907239" type="application/octet-stream" sparkle:edSignature="APBylb4uG4Z08vO7d7TTOtXudhIFSi2vWcMoU3hGw2tBYwQOptYQipqtbqyJtMexqbM88pMheEOeJYK5HwlODA=="></enclosure>
-        <description sparkle:descriptionFormat="plain-text"># Usage Topbar 0.7.0
+            <enclosure url="https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.7.1/UsageTopbar-0.7.1-macOS-arm64.zip" length="1957519" type="application/octet-stream" sparkle:edSignature="AZghmSiLnEoDJcq9aMa0oatCXo4s2p4k16XwuLbx154fEC0IKk/R9L6rWnUfKkKfTKIalpKXYptgKlVjQvEtBg=="></enclosure>
+        <description sparkle:descriptionFormat="plain-text"># Usage Topbar 0.7.1
 
-[English](RELEASE_NOTES.en.md)
+修复额度历史在缺测后恢复到 100% 时缺少重置箭头和绿条的问题，已有历史也会重新识别。标记位于首次恢复观测点，注明推断；不推定实际重置时间或来源，不填补缺测数值。连续 100% 不重复标记，保留账号隔离。
 
-**正式版 · build 52 · Apple Silicon · macOS 13+**
+Fix missing reset markers and green bands when quota returns to 100% after missing observations, including existing history. The marker uses the first recovery observation and is disclosed as inferred; the exact reset time and cause remain unknown. Repeated full readings do not create duplicate markers.
 
-0.7.0 将额度历史和自定义配色带到正式配置，保留手动更新和独立 Testing 通道。
-
-- **查看历史**：左键菜单栏百分比打开四天预览，点击曲线进入可横向滚动的七天详情。详情显示十字定位与读数；小浮窗保持简洁悬停提示。
-- **调整配色**：右键菜单栏 → **渐变设置…**，编辑颜色、透明度与色标位置，支持预览、保存、取消和恢复默认。横条色谱固定，额度减少只从右边裁切；四天与七天曲线按纵轴额度同步配色。
-- **保留真实记录**：正常每30分钟记录新鲜有效读数，部分生命周期与事件额外记录，滚动保留三个月。长缺口和重置边界不补造数据；部分重置属于推断，无法保证所有离线事件都被分类。
-- **窗口与外观**：跟随有效深浅外观；macOS 26+ 使用 Liquid Glass，较早支持系统使用材质。历史背景采用模糊与自适应底色。
-- **减少重复工作**：复用曲线与渐变缓存，隐藏图表暂停刷新，显示时补齐；历史快照后台串行保存并合并变化，失败重试，睡眠与退出等待最后快照。
-- **升级保留设置**：保留正式偏好域和已保存配色；真实历史迁移有校验、去重、正式冲突优先、备份与失败回退。Testing 偏好和模拟数据不导入正式版。
-
-从已有0.5.0及后续正式版右键菜单选择“检查更新…”，确认下载、安装和重启。更新版本及说明由匹配的签名清单提供，缺失或不一致会报告未获取，不沿用旧说明。
-
-CI与安装包验签通过；部分实屏交互验收与资源采样未完成，不宣称全面验收或续航改善。应用为ad-hoc签名、未经Apple公证；没有自动健康回滚，旧系统与物理触控板覆盖有限。</description></item>
+0.7.1（build 53），Apple Silicon arm64，macOS 13+。已通过针对性恢复/回放/账号隔离检查及正式构建与包签名验证。沿用 ad-hoc 签名，未经过 Apple 公证。</description></item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: XregxPTfzNJQ2wiKkLjxbE1y2crJCTCgNXntpXipDE6DGSWzaCL2d0O0V7wv0d9XTu08GbfAaOkLrrYf7i5sBg==
-length: 3168
+edSignature: jBLiZa9ZeCtZFmn5YANGWbrxFTSvD26sNBhE6P8bJnz8HRLnA/2hsVxjwaooPvnYPQ1jSkTuOnQi4zVmUZX4CQ==
+length: 2032
 -->
