@@ -7,19 +7,19 @@ A lightweight, liquid-glass-style companion for Apple Silicon Macs. Keep Codex r
 
 See your remaining allowance at a glance while Codex is running, without clicking the avatar in the lower-left corner and opening a submenu to check it. Keeping this information in view can help ease anxiety about usage limits.
 
-**Public release: 0.7.0 (build 52) · Apple Silicon (arm64) · macOS 13+**
+**Public release: 0.7.1 (build 53) · Apple Silicon (arm64) · macOS 13+**
 
-[Download ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.7.0/UsageTopbar-0.7.0-macOS-arm64.zip) · [Release](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.7.0) · [Installation and usage](docs/USAGE.en.md) · [Changelog](CHANGELOG.en.md) · [Report a problem](https://github.com/ALEXESLAT/usage-topbar/issues)
+[Download ZIP](https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.7.1/UsageTopbar-0.7.1-macOS-arm64.zip) · [Release](https://github.com/ALEXESLAT/usage-topbar/releases/tag/v0.7.1) · [Installation and usage](docs/USAGE.en.md) · [Changelog](CHANGELOG.en.md) · [Report a problem](https://github.com/ALEXESLAT/usage-topbar/issues)
 
 ![Anonymous Usage Topbar demo](assets/previews/usage-topbar-0.4.0.png)
 
 *Rendered with the actual 0.4.0 UI components, simulated data, and a static dark background; live Liquid Glass refraction is not shown.*
 
-**0.7.0** adds a four-day preview (left-click the percentage) and a seven-day scrolling history (click the chart). Right-click → **渐变设置…** edits color/alpha stops shared by the quota bar and both history views. Detail uses crosshair readings; compact hover labels stay concise, with adaptive light/dark appearance.
+**0.7.1** adds a four-day preview (left-click the percentage) and a seven-day scrolling history (click the chart). Right-click → **渐变设置…** edits color/alpha stops shared by the quota bar and both history views. Detail uses crosshair readings; compact hover labels stay concise, with adaptive light/dark appearance.
 
 Fresh quota is normally recorded every 30 minutes and retained for three months. Gaps are not invented and some resets are inferred. Curve caches, hidden-window refresh pausing and serial background persistence reduce repeated work; no battery-life improvement is claimed. Updates preserve production settings; history migration includes backups and rollback. There is no automatic health rollback.
 
-[Features, entry points and validation limits](RELEASE_NOTES.en.md). The current release is 0.7.0.
+[Features, entry points and validation limits](RELEASE_NOTES.en.md). The current release is 0.7.1.
 
 ## Features
 

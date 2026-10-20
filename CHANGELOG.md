@@ -1,5 +1,10 @@
 # 更新记录
 
+## 0.7.1 (53)
+
+- 缺测后恢复 100% 显示推断重置箭头和绿条，支持旧历史回放；保留未知来源和时间，不填补缺测值，避免重复标记。
+- Show inferred reset markers and green bands for full recovery after gaps, including historical replay, without fabricating missing observations or duplicating markers.
+
 ## 0.7.0（52，候选草稿）
 
 - 正式与 Testing 均支持渐变设置、加载、预览、保存、取消及历史图表联动；保留各自偏好域。

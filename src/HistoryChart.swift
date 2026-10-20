@@ -100,7 +100,7 @@ enum HistoryChartGeometry {
     static let plotTop: CGFloat = 30
     static let plotBottom: CGFloat = 34
     static func resetConnector(_ points: [HistoryPoint], at index: Int, from a: CGPoint, to b: CGPoint) -> (CGPoint,CGPoint)? {
-        guard comparable(points,at:index), let event=points[index].event, event.kind != .unknown,
+        guard comparable(points,at:index), let event=points[index].event, event.showsReset,
               points[index].reading.remaining > points[index-1].reading.remaining else { return nil }
         // Position at the first observed post-reset sample, not an invented exact event time.
         return (CGPoint(x:b.x,y:a.y),b)
@@ -245,7 +245,11 @@ enum HistoryChartGeometry {
 }
 
 final class HistoryChartView: NSView {
-    var points: [HistoryPoint] = [] { didSet { cacheSize=nil;clearCrosshair();needsDisplay = true } }
+    var points: [HistoryPoint] = [] { didSet {
+        cacheSize=nil;clearCrosshair();needsDisplay = true
+        toolTip = points.contains { $0.event?.source == "gap-recovery-full" }
+            ? "缺测后恢复 100%：重置为推断，标记位于首次恢复观测点；实际时间和来源未知。" : nil
+    } }
     var start = Date().timeIntervalSince1970 - 4 * 86400.0
     var end = Date().timeIntervalSince1970
     var now: () -> Double = { Date().timeIntervalSince1970 }
@@ -496,7 +500,7 @@ final class HistoryChartView: NSView {
         }
         // Independent top marker band. Cluster nearby markers rather than overlap them.
         var groups:[[HistoryPoint]]=[]
-        for p in points where p.event != nil && p.event?.kind != .unknown {
+        for p in points where p.event?.showsReset == true {
             if let last=groups.last, point(p).x-point(last[0]).x<32 { groups[groups.count-1].append(p) }
             else { groups.append([p]) }
         }
