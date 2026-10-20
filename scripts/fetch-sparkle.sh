@@ -18,4 +18,4 @@ if [ ! -d "$DEST/Sparkle.framework" ]; then
   tar -xf "$ARCHIVE" -C "$DEST"
 fi
 codesign --verify --deep --strict "$DEST/Sparkle.framework"
-printf '%s\n' "$DEST"
+python3 "$(dirname "$0")/harden-sparkle.py" "$DEST" "$CACHE"

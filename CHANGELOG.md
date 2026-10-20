@@ -2,6 +2,9 @@
 
 ## 0.7.3 (55)
 
+- 安装前校验精确 Bundle ID 和清单/包内 build；保留验签并覆盖旧版首次升级。
+- Validate exact bundle identity and appcast/package build before installation; preserve signature verification and legacy upgrade compatibility.
+
 - 收紧缺测期间未用卡证据：相同快照不足以推断特殊重置；修复旧版本测试并将恢复测试接入 CI。
 - Preserve uncertainty across unseen intervals; use independent version fixtures and run recovery regressions in CI.
 

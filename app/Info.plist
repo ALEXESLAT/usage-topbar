@@ -42,6 +42,8 @@
 	<false/>
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/ALEXESLAT/usage-topbar/main/updates/appcast.xml</string>
+	<key>UsageTopbarStrictUpdateValidation</key>
+	<true/>
 	<key>SURequireSignedFeed</key>
 	<true/>
 	<key>SUShowReleaseNotes</key>

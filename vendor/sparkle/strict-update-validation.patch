@@ -1,0 +1,41 @@
+diff --git a/Sparkle/SUUpdateValidator.m b/Sparkle/SUUpdateValidator.m
+index fa952cd..b7d2d30 100644
+--- a/Sparkle/SUUpdateValidator.m
++++ b/Sparkle/SUUpdateValidator.m
+@@ -139,6 +139,26 @@ - (BOOL)validateWithUpdateDirectory:(NSString *)updateDirectory error:(NSError *
+ 
+     NSURL *installSourceURL = [NSURL fileURLWithPath:installSource];
+ 
++    // UsageTopbar opt-in: signature validity does not imply exact package identity/version.
++    // Shared by both prevalidated-archive and post-extraction signature paths.
++    if ([[host.bundle objectForInfoDictionaryKey:@"UsageTopbarStrictUpdateValidation"] boolValue]) {
++        NSBundle *newBundle = [NSBundle bundleWithURL:installSourceURL];
++        NSString *expectedIdentifier = host.bundle.bundleIdentifier;
++        NSString *actualIdentifier = newBundle.bundleIdentifier;
++        NSString *expectedVersion = _verifierInformation.expectedVersion;
++        id actualVersion = [newBundle objectForInfoDictionaryKey:@"CFBundleVersion"];
++        if (expectedIdentifier.length == 0 || actualIdentifier.length == 0 ||
++            ![expectedIdentifier isEqualToString:actualIdentifier] ||
++            expectedVersion.length == 0 || ![actualVersion isKindOfClass:NSString.class] ||
++            ![expectedVersion isEqualToString:actualVersion]) {
++            if (error != NULL) {
++                *error = [NSError errorWithDomain:SUSparkleErrorDomain code:SUValidationError
++                    userInfo:@{NSLocalizedDescriptionKey: @"The update bundle identifier or build does not match the installed application and authenticated appcast. The update will be rejected."}];
++            }
++            return NO;
++        }
++    }
++
+     if (!_prevalidatedSignature) {
+ #if SPARKLE_BUILD_PACKAGE_SUPPORT
+         // Check to see if we have a package or bundle to validate
+@@ -317,7 +337,8 @@ - (BOOL)validateUpdateForHost:(SUHost *)host downloadedToPath:(NSString *)downlo
+     SUPublicKeys *newPublicKeys = newHost.publicKeys;
+     
+     _verifierInformation.actualVersion = newHost.version;
+-    
++
++
+     BOOL oldHasAnyDSAKey = NO;
+     BOOL newHasAnyDSAKey = NO;
+     BOOL migratesDSAKeys = NO;

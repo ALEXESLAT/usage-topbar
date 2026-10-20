@@ -22,6 +22,8 @@ for name in ["UsageTopbar-Testing-0.6.0-macOS-arm64.zip", "UsageTopbar-0.5.0-dev
 require(!UpdatePolicy.permits(version: "22", installed: "21", download: nil), "missing enclosure")
 let info = try PropertyListSerialization.propertyList(from: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])), format: nil) as! [String: Any]
 require(UpdatePolicy.configurationProblem(info)?.contains("公钥") == true, "keyless build must fail closed")
+var missingGuard = info; missingGuard["UsageTopbarStrictUpdateValidation"] = false
+require(UpdatePolicy.configurationProblem(missingGuard)?.contains("安装前") == true, "strict package guard cannot be disabled")
 var bad = info; bad["CFBundleIdentifier"] = "wrong.app"
 require(UpdatePolicy.configurationProblem(bad)?.contains("标识") == true, "wrong identity")
 bad = info; bad["SUFeedURL"] = "http://example.test/feed.xml"

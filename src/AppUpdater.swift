@@ -15,6 +15,7 @@ enum UpdatePolicy {
         return "测试版不连接正式更新通道。"
         #else
         guard info["CFBundleIdentifier"] as? String == bundleID else { return "应用标识不匹配。" }
+        guard info["UsageTopbarStrictUpdateValidation"] as? Bool == true else { return "安装前身份和版本验证未启用。" }
         guard info["SUFeedURL"] as? String == feed else { return "更新源配置不正确。" }
         for name in ["SURequireSignedFeed", "SUVerifyUpdateBeforeExtraction"] {
             guard info[name] as? Bool == true else { return "更新签名验证未启用。" }

@@ -18,7 +18,7 @@ Explicit overlay visibility is stored as `overlay.userHidden` in the stable `loc
 - Covered check/download cancellation, skipping, no-update, network/signature errors, interrupted-download retry, missing installer helper and controlled replacement failure after readiness. Old bundles were retained; controlled replacement failure left the signed old app launchable with settings.
 - There is **no automatic health-check rollback** after a new version fails to start. Manual restoration of a verified working backup was tested in isolation only; arbitrary disk corruption or power loss is not covered. Wait for app/installer exit, preserve the failed app and keep preferences.
 - Programmable-host tests do not prove every standard UI branch. Developer ID, notarization, clean Macs, older systems, real login/logout/reboot and prolonged real-account use remain untested.
-- The ad-hoc Sparkle path may accept a trusted-signed wrong bundle ID or a package/feed build mismatch. Publisher-side exact checks reduce mistakes; they are not an independent client identity boundary. Signatures do not ensure freshness. A compromised signing key compromises publishing authority.
+- Starting with 0.7.3, the pinned Sparkle validator patch rejects wrong Bundle IDs, missing fields and package/feed build mismatches before installation, while preserving signature checks. Older installed updaters retain their original behavior until upgraded, so publisher-side exact verification remains essential for the first transition. Signatures do not ensure freshness. A compromised signing key compromises publishing authority.
 
 ## Maintainer release procedure
 

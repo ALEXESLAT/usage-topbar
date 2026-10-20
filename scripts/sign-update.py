@@ -18,7 +18,9 @@ def validate(archive, version, build):
         if len(names)!=len(set(names)) or any(PurePosixPath(n).is_absolute() or '..' in PurePosixPath(n).parts or not n.startswith('UsageTopbar.app/') for n in names):
             raise ValueError('Unexpected archive layout or duplicate entries')
         info=plistlib.loads(z.read('UsageTopbar.app/Contents/Info.plist'))
-    expected={'UsageTopbarHistorySource':'real','CFBundleIdentifier':'local.alex.usage-topbar','CFBundleExecutable':'UsageTopbar','CFBundleVersion':build,'CFBundleShortVersionString':version,'SUFeedURL':'https://raw.githubusercontent.com/ALEXESLAT/usage-topbar/main/updates/appcast.xml','SUPublicEDKey':(ROOT/'app/update-public-key.txt').read_text().strip(),'SURequireSignedFeed':True,'SUVerifyUpdateBeforeExtraction':True,'SUSignedFeedFailureExpirationInterval':0,'SUEnableAutomaticChecks':False,'SUAutomaticallyUpdate':False,'SUAllowsAutomaticUpdates':False,'SUEnableSystemProfiling':False,'SUEnableJavaScript':False,'SUShowReleaseNotes':True}
+        framework=plistlib.loads(z.read('UsageTopbar.app/Contents/Frameworks/Sparkle.framework/Versions/B/Resources/Info.plist'))
+        if framework.get('UsageTopbarStrictUpdateValidationRevision')!=1:raise ValueError('Missing strict Sparkle validator')
+    expected={'UsageTopbarStrictUpdateValidation':True,'UsageTopbarHistorySource':'real','CFBundleIdentifier':'local.alex.usage-topbar','CFBundleExecutable':'UsageTopbar','CFBundleVersion':build,'CFBundleShortVersionString':version,'SUFeedURL':'https://raw.githubusercontent.com/ALEXESLAT/usage-topbar/main/updates/appcast.xml','SUPublicEDKey':(ROOT/'app/update-public-key.txt').read_text().strip(),'SURequireSignedFeed':True,'SUVerifyUpdateBeforeExtraction':True,'SUSignedFeedFailureExpirationInterval':0,'SUEnableAutomaticChecks':False,'SUAutomaticallyUpdate':False,'SUAllowsAutomaticUpdates':False,'SUEnableSystemProfiling':False,'SUEnableJavaScript':False,'SUShowReleaseNotes':True}
     for key,value in expected.items():
         if info.get(key)!=value:raise ValueError('Package metadata mismatch: '+key)
     if len(base64.b64decode(expected['SUPublicEDKey'],validate=True))!=32:

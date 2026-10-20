@@ -7,8 +7,9 @@ import argparse, functools, hashlib, http.server, json, os, plistlib, re, shutil
 from pathlib import Path
 parser=argparse.ArgumentParser()
 parser.add_argument('--work',required=True); parser.add_argument('--sparkle',required=True)
+parser.add_argument('--legacy-sparkle')
 parser.add_argument('--allow-keychain-signing',action='store_true')
-parser.add_argument('--cases',default='success,no-update,bad-feed,bad-archive,wrong-identity,wrong-version,cancel-check,cancel-offer,cancel-download,cancel-install,network-error,download-error')
+parser.add_argument('--cases',default='success,no-update,bad-feed,bad-archive,wrong-identity,wrong-version,cancel-check,cancel-offer,cancel-download,cancel-install,network-error,download-error,missing-identity,missing-version,mismatched-newer-version,wrong-identity-postverify,mismatched-newer-version-postverify')
 a=parser.parse_args()
 if not a.allow_keychain_signing: parser.error('Explicit signing authorization is required')
 root=Path(__file__).resolve().parents[2];work=Path(a.work).resolve();sdk=Path(a.sparkle).resolve()
@@ -47,8 +48,13 @@ try:
         (dest/'Contents/Resources').mkdir()
         shutil.copy2(work/'PreferencesProbe',dest/'Contents/Resources/PreferencesProbe')
         run('codesign','--force','--sign','-',dest/'Contents/Resources/PreferencesProbe')
-        run('ditto',sdk/'Sparkle.framework',dest/'Contents/Frameworks/Sparkle.framework')
-        info=dict(CFBundleIdentifier=identity,CFBundleExecutable='Fixture',CFBundlePackageType='APPL',CFBundleName='UsageTopbar Update Fixture',CFBundleVersion=str(version),CFBundleShortVersionString='0.5.0',LSMinimumSystemVersion='13.0',LSUIElement=True,SUFeedURL=feed,SUPublicEDKey=key,SURequireSignedFeed=True,SUVerifyUpdateBeforeExtraction=True,SUSignedFeedFailureExpirationInterval=0,SUEnableAutomaticChecks=False,SUAutomaticallyUpdate=False,SUAllowsAutomaticUpdates=False,SUEnableSystemProfiling=False,SUShowReleaseNotes=False,SUEnableJavaScript=False,NSAppTransportSecurity={'NSAllowsLocalNetworking':True},FixtureScenario=case,FixtureLog=str(log))
+        framework_sdk=Path(a.legacy_sparkle).resolve() if case=='legacy-upgrade' and version==21 and a.legacy_sparkle else sdk
+        if case=='legacy-upgrade' and not a.legacy_sparkle:raise ValueError('legacy-upgrade requires --legacy-sparkle')
+        run('ditto',framework_sdk/'Sparkle.framework',dest/'Contents/Frameworks/Sparkle.framework')
+        info=dict(CFBundleIdentifier=identity,CFBundleExecutable='Fixture',CFBundlePackageType='APPL',CFBundleName='UsageTopbar Update Fixture',CFBundleVersion=str(version),CFBundleShortVersionString='0.5.0',LSMinimumSystemVersion='13.0',LSUIElement=True,UsageTopbarStrictUpdateValidation=True,SUFeedURL=feed,SUPublicEDKey=key,SURequireSignedFeed=True,SUVerifyUpdateBeforeExtraction=not case.endswith("-postverify"),SUSignedFeedFailureExpirationInterval=0,SUEnableAutomaticChecks=False,SUAutomaticallyUpdate=False,SUAllowsAutomaticUpdates=False,SUEnableSystemProfiling=False,SUShowReleaseNotes=False,SUEnableJavaScript=False,NSAppTransportSecurity={'NSAllowsLocalNetworking':True},FixtureScenario=case,FixtureLog=str(log))
+        if version!=21 and case=='missing-identity':info.pop('CFBundleIdentifier')
+        if version!=21 and case=='missing-version':info.pop('CFBundleVersion')
+        if version==21 and case=='legacy-upgrade':info.pop('UsageTopbarStrictUpdateValidation')
         (dest/'Contents/Info.plist').write_bytes(plistlib.dumps(info))
         fw=dest/'Contents/Frameworks/Sparkle.framework'
         for child in ['XPCServices/Downloader.xpc','XPCServices/Installer.xpc','Autoupdate','Updater.app']:
@@ -56,8 +62,8 @@ try:
         run('codesign','--force','--sign','-',fw)
         run('codesign','--force','--sign','-',dest)
     old=directory/'installed/UsageTopbarUpdateTest.app';bundle(old,21)
-    new=directory/'candidate/UsageTopbarUpdateTest.app';newversion=21 if case=='no-update' else 20 if case=='wrong-version' else 23 if case=='mismatched-newer-version' else 22
-    bundle(new,newversion,bundle_id+'.wrong' if case=='wrong-identity' else bundle_id)
+    new=directory/'candidate/UsageTopbarUpdateTest.app';newversion=21 if case=='no-update' else 20 if case=='wrong-version' else 23 if case.startswith('mismatched-newer-version') else 22
+    bundle(new,newversion,bundle_id+'.wrong' if case.startswith('wrong-identity') else bundle_id)
     archive=directory/'UsageTopbar-0.5.0-macOS-arm64.zip'
     run('ditto','-c','-k','--keepParent',new,archive)
     signature=run(sdk/'bin/sign_update','--account',account,'-p',archive).strip()
@@ -96,7 +102,7 @@ try:
         try:os.kill(int(pid),0);child_alive.append(pid)
         except ProcessLookupError:pass
     result=dict(case=case,exit=proc.returncode,installed_version=after,old_plist_unchanged=old.exists() and hashlib.sha256((old/'Contents/Info.plist').read_bytes()).hexdigest()==before,events=events,owned_children_still_alive=child_alive)
-    expected_new = case in ['success','recovery-download'] or case.startswith('preferences-')
+    expected_new = case in ['success','recovery-download','legacy-upgrade'] or case.startswith('preferences-')
     if case in ['wrong-identity','mismatched-newer-version']:
         result['expectation_met'] = after == '21' and result['old_plist_unchanged']
     elif expected_new:

@@ -6,4 +6,8 @@
 
 Tighten reset evidence boundaries: matching card snapshots across an unseen interval do not prove that no card was used. Preserve each sample's scheduled deadline, classify supported fresh observations and redeemed-card evidence, and leave uncertain history unmarked. Fix stale version assertions using independent fixture metadata and include recovery/replay checks in CI.
 
+安装前额外核验应用 Bundle ID 和清单/包内 build，拒绝缺失或不一致的更新包，保留原签名验证。旧版本在首次升级前仍使用其原更新器。
+
+The patched installer validates exact bundle identity and appcast/package build while retaining signature verification. Older installations retain their original updater until upgraded.
+
 0.7.3（build 55），Apple Silicon arm64，macOS 13+。沿用 ad-hoc 签名，未经过 Apple 公证。
