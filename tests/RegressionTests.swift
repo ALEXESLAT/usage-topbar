@@ -159,6 +159,7 @@ let foreign = exercise("foreign")
 check(foreign.0 == 0 && foreign.1.contains("Usage unavailable"), "foreign live bucket invalidates usage")
 let rejected = exercise("error")
 check(rejected.0 == 0 && rejected.1.contains("Codex request failed"), "explicit errors invalidate usage")
+check(rejected.1.filter { $0 == "Codex request failed" }.count >= 2, "RPC failure reconnects with backoff")
 let bounded = exercise("oversized")
 check(bounded.0 == 0 && bounded.1.contains(where: { $0.contains("Invalid response") }), "bounded response buffer")
 let restartable = RateLimitClient(executable: CommandLine.arguments[1] + "/recover", timeout: 1.5, retryDelays: [0.1], monitorsPath: false)
@@ -285,3 +286,42 @@ check(OverlayTrackingPolicy.interval(targetActive: false, userHidden: false, sle
 check(OverlayTrackingPolicy.interval(targetActive: true, userHidden: true, sleeping: false) == 1, "manual hiding uses fallback cadence")
 check(OverlayTrackingPolicy.interval(targetActive: true, userHidden: false, sleeping: true) == nil, "sleep stops tracking")
 print("PASS: display-label dedup, raw retention, accessibility/progress changes, bounded glyph cache and tracking policy")
+
+// Proxy translation must be deterministic, preserve explicit routing, and clear
+// generated values when the system proxy disappears (fresh base on every read).
+let proxyBase = ["PATH": "/usr/bin:/bin", "fixture": "retained"]
+let proxySettings: [String: Any] = ["HTTPEnable": 1, "HTTPProxy": "127.0.0.1", "HTTPPort": 7890,
+    "HTTPSEnable": 1, "HTTPSProxy": "127.0.0.1", "HTTPSPort": 7890,
+    "SOCKSEnable": 1, "SOCKSProxy": "127.0.0.1", "SOCKSPort": 1080,
+    "ExceptionsList": ["localhost", "*.example.invalid"]]
+let translated = CodexProxyEnvironment.resolve(base: proxyBase, settings: proxySettings)
+check(translated["HTTPS_PROXY"] == "http://127.0.0.1:7890", "HTTPS uses HTTP CONNECT proxy")
+check(translated["ALL_PROXY"] == "socks5h://127.0.0.1:1080", "SOCKS performs proxy-side DNS")
+check(translated["NO_PROXY"] == "localhost,.example.invalid" && translated["fixture"] == "retained", "exclusions and unrelated environment retained")
+check(CodexProxyEnvironment.resolve(base: proxyBase, settings: [:]) == proxyBase, "TUN/no system proxy needs no generated override")
+let explicitProxy = proxyBase.merging(["https_proxy":"http://localhost:8000", "no_proxy":"example.invalid"]) { _, new in new }
+check(CodexProxyEnvironment.resolve(base: explicitProxy, settings: proxySettings) == explicitProxy, "explicit environment wins as a routing unit")
+var pac = proxySettings; pac["ProxyAutoConfigEnable"] = 1
+check(CodexProxyEnvironment.resolve(base: proxyBase, settings: pac) == proxyBase, "do not misinterpret PAC")
+check(CodexProxyEnvironment.resolve(base: proxyBase, settings: ["HTTPSEnable":1,"HTTPSProxy":"bad@host","HTTPSPort":7890])["HTTPS_PROXY"] == nil, "invalid endpoint rejected")
+var childEnvironment = ProcessInfo.processInfo.environment
+childEnvironment.removeValue(forKey: "HTTPS_PROXY")
+let switching = RateLimitClient(executable: CommandLine.arguments[1] + "/stable", timeout: 3, monitorsPath: false, environment: { childEnvironment })
+var switchSamples: [Double] = []
+switching.onSnapshot = { if let value = $0.remaining { switchSamples.append(value) } }
+func awaitSwitchSamples(_ count: Int) {
+    let deadline = Date().addingTimeInterval(4)
+    while switchSamples.count < count && Date() < deadline {
+        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+    }
+}
+switching.start(); awaitSwitchSamples(1)
+check(switchSamples == [60], "initial read")
+childEnvironment["HTTPS_PROXY"] = "http://127.0.0.1:7890"
+switching.refresh(); awaitSwitchSamples(2)
+check(switchSamples == [60, 50], "proxy switch reinitializes then reads without path transition")
+childEnvironment.removeValue(forKey: "HTTPS_PROXY")
+switching.refresh(); awaitSwitchSamples(3)
+switching.stop(waitForChildExit: true)
+check(switchSamples == [60, 50, 60], "proxy removal also reconnects")
+print("PASS system proxy translation, explicit environment, PAC/TUN, and live child proxy switch/removal")

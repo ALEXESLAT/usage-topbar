@@ -91,7 +91,7 @@ struct HistoryReset: Codable, Equatable {
     let exactTime: Double?
     let inferred: Bool
     let source: String
-    var showsReset: Bool { kind != .unknown }
+    var showsReset: Bool { kind != .unknown || source == "observed-full-recovery" || source == "gap-recovery-full" }
 }
 struct HistoryPoint: Codable, Equatable {
     let reading: HistoryReading
@@ -113,7 +113,7 @@ enum HistoryResetClassifier {
            before.contains(where: { old in old.status == "available" && after.contains(where: { $0.id == old.id && $0.status == "redeemed" }) }) {
             return event(.card, "card-status:available→redeemed")
         }
-        if !gap, cardsUnchanged(a, b), let oldReset = a.resetsAt, let newReset = b.resetsAt,
+        if !gap, b.time - a.time <= QuotaHistoryStore.continuityLimit, cardsUnchanged(a, b), let oldReset = a.resetsAt, let newReset = b.resetsAt,
            a.time < oldReset, oldReset <= b.time, newReset > oldReset,
            abs((newReset - oldReset) / a.duration - ((newReset - oldReset) / a.duration).rounded()) < 1.0 / a.duration {
             // Exact scheduled boundary is known, but multiple missed cycles remain an interval.
@@ -121,19 +121,21 @@ enum HistoryResetClassifier {
             return event(.cycle, "scheduled-deadline", exact: single ? oldReset : nil, inferred: true)
         }
         // Compare against the deadline captured BEFORE the reset, never the renewed deadline.
-        if !gap, let oldReset = a.resetsAt, a.time < oldReset,
+        if let oldReset = a.resetsAt, a.time < oldReset,
            b.time < oldReset, b.remaining == 100, cardsUnchanged(a, b) {
             return event(.special, "early-full-reset+unchanged-complete-cards", inferred: true)
         }
-        return event(.unknown, "insufficient-reset-evidence")
+        return event(.unknown, b.remaining == 100 ? "observed-full-recovery" : "insufficient-reset-evidence")
     }
     static func cardsUnchanged(_ a: HistoryReading, _ b: HistoryReading) -> Bool {
-        // Matching snapshots cannot rule out cards acquired and redeemed during an unseen interval.
-        guard b.time - a.time <= QuotaHistoryStore.continuityLimit,
-              let x = a.cards, let y = b.cards, let n = a.availableCards, let m = b.availableCards,
+        // Product rule: unchanged complete snapshots support an inferred early full reset,
+        // even across a gap. This is not a claim of continuous observation.
+        guard let x = a.cards, let y = b.cards, let n = a.availableCards, let m = b.availableCards,
               x.count == n, y.count == m, n == m,
               x.allSatisfy({ $0.status == "available" && ($0.expiresAt ?? .infinity) > b.time }),
-              y.allSatisfy({ $0.status == "available" }), Set(x.map(\.id)) == Set(y.map(\.id)) else { return false }
+              y.allSatisfy({ $0.status == "available" }),
+              Set(x.map(\.id)).count == x.count, Set(y.map(\.id)).count == y.count,
+              x.sorted(by: { $0.id < $1.id }) == y.sorted(by: { $0.id < $1.id }) else { return false }
         return true
     }
 }
@@ -230,7 +232,7 @@ enum HistoryMigration {
     private static func decode(_ data: Data) throws -> Archive {
         let archive = try JSONDecoder().decode(Archive.self, from:data)
         func digest(_ value: String) -> Bool { value.count == 64 && value.allSatisfy { "0123456789abcdef".contains($0) } }
-        let sources = Set(["card-status:available→redeemed", "scheduled-deadline", "early-full-reset+full-period+unchanged-complete-cards", "insufficient-reset-evidence", "gap-recovery-full", "early-full-reset+unchanged-complete-cards"])
+        let sources = Set(["observed-full-recovery", "card-status:available→redeemed", "scheduled-deadline", "early-full-reset+full-period+unchanged-complete-cards", "insufficient-reset-evidence", "gap-recovery-full", "early-full-reset+unchanged-complete-cards"])
         guard archive.version == 1, archive.points.allSatisfy({ p in
             let r=p.reading, parts=r.series.split(separator:"/")
             guard digest(r.account), parts.count==3, parts[0]=="codex",
@@ -323,6 +325,9 @@ final class QuotaHistoryStore: HistoryDataSource {
     // Store state stays on the main thread; only immutable snapshots cross this queue.
     private let persistenceQueue = DispatchQueue(label: "usage-topbar.history", qos: .utility)
     private var revision: UInt64 = 0
+    private var visibleRevision: UInt64?
+    private var visibleAccount: String?
+    private var visibleCache: [String: [HistoryPoint]] = [:]
     private var writeGeneration: UInt64 = 0
     private var writing = false
     private var migrationWarning: String?
@@ -427,6 +432,10 @@ final class QuotaHistoryStore: HistoryDataSource {
         Array(Set(points.filter { $0.reading.account == activeAccount }.map { $0.reading.series })).sorted()
     }
     func visiblePoints(series: String) -> [HistoryPoint] {
+        if visibleRevision != revision || visibleAccount != activeAccount {
+            visibleCache.removeAll(); visibleRevision = revision; visibleAccount = activeAccount
+        }
+        if let cached = visibleCache[series] { return cached }
         var result: [HistoryPoint] = []
         var crossedAccount = false
         for point in points.sorted(by: { $0.reading.time < $1.reading.time }) {
@@ -445,6 +454,7 @@ final class QuotaHistoryStore: HistoryDataSource {
             }
             result.append(displayed); crossedAccount = false
         }
+        visibleCache[series] = result
         return result
     }
     @discardableResult private func prune(at date: Date) -> Bool {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0 (56) — stable release
+
+Integrates update channels, reset inference/icons and proxy reconnect support; fixes resumed-candidate validation and legend layout, and caches derived history. See [candidate notes](RELEASE_NOTES.en.md).
+
+
 ## 0.7.0 (52, draft candidate)
 
 - Enable gradient loading, editing, preview, save/cancel and chart linkage in both Release and Testing, retaining separate preference domains.

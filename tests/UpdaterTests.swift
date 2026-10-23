@@ -2,6 +2,13 @@ import AppKit
 import Foundation
 
 func require(_ value: Bool, _ message: String) { precondition(value, message) }
+if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--verify-channel" {
+    let domain = CommandLine.arguments[2]
+    require(domain.hasPrefix("local.alex.usage.channel-test."),"only isolated test preferences")
+    require(UserDefaults(suiteName:domain)?.string(forKey:"updates.channel") == "beta","channel persisted across process restart")
+    print("PASS persisted channel in a new process"); exit(0)
+}
+
 let trusted = URL(string: "https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.5.0/UsageTopbar-0.5.0-macOS-arm64.zip")!
 require(UpdatePolicy.permits(version: "22", installed: "21", download: trusted), "new integer build")
 for version in ["20", "21", "021", "21.0", "-1", "18446744073709551616", "garbage"] {
@@ -54,6 +61,9 @@ final class FakeEngine: ManualUpdateEngine {
     var canCheck = true
     var starts = 0, checks = 0
     var startError: Error?
+    var canChangeChannel = true
+    var selected: [UpdateChannel] = []
+    func setChannel(_ value: UpdateChannel) { selected.append(value) }
     func start() throws { starts += 1; if let startError { throw startError } }
     func check() { checks += 1; canCheck = false }
 }
@@ -95,3 +105,86 @@ for (version, build) in [("1.2.3", "53"), ("7.8.9", "90")] {
     require(UpdatePolicy.presentationProblem(version:build,displayVersion:version,download:url,notes:"Fresh retry notes") == nil,"retry reads current item without presentation cache")
 }
 print("PASS dynamic item version binding, missing notes, stale version rejection and stateless retry")
+
+func fixture(_ version: String, _ build: String, channel: String? = nil, status: String? = "published") -> UpdateCandidate {
+    UpdateCandidate(build: build, version: version, channel: channel, releaseStatus: status,
+        url: URL(string: "https://github.com/ALEXESLAT/usage-topbar/releases/download/v\(version)/UsageTopbar-\(version)-macOS-arm64.zip"), notes: "Signed fixture notes")
+}
+let ordered = ["1.0.0-alpha", "1.0.0-alpha.1", "1.0.0-alpha.beta", "1.0.0-beta", "1.0.0-beta.2", "1.0.0-beta.10", "1.0.0-rc.1", "1.0.0", "1.0.1", "1.10.0"]
+for (a,b) in zip(ordered,ordered.dropFirst()) { require(UpdateVersion(a)! < UpdateVersion(b)!, "semantic precedence \(a) < \(b)") }
+require(UpdateVersion("1.0.0+local") == UpdateVersion("1.0.0+other"), "build metadata does not affect precedence")
+for bad in ["01.0.0", "1.0", "1.0.0-beta.01", "1.0.0-", "1.0.0+", "1.0.0/beta", "1.0.0.."] { require(UpdateVersion(bad) == nil,"invalid SemVer") }
+let releases = [fixture("1.1.0-beta.10","103",channel:"beta",status:"prerelease"), fixture("1.1.0-beta.2","102",channel:"beta",status:"prerelease"), fixture("1.0.1","101"), fixture("1.1.0","104")]
+for channel in UpdateChannel.allCases {
+    require(UpdateCandidate.best(releases,channel:channel,installedBuild:"100",installedVersion:"1.0.0") == 3,"newer stable wins on either channel")
+}
+require(UpdateCandidate.best(Array(releases.prefix(3)),channel:.beta,installedBuild:"100",installedVersion:"1.0.0") == 0,"beta.10 beats beta.2")
+require(UpdateCandidate.best(Array(releases.prefix(3)),channel:.stable,installedBuild:"100",installedVersion:"1.0.0") == 2,"stable excludes prereleases")
+require(UpdateCandidate.best([releases[2]],channel:.beta,installedBuild:"100",installedVersion:"1.0.0") == 0,"no beta still permits stable")
+require(UpdateCandidate.best([],channel:.beta,installedBuild:"100",installedVersion:"1.0.0") == nil,"empty feed")
+for item in [fixture("1.1.0","105",status:"draft"),fixture("1.1.0","105",status:nil),fixture("1.1.0","105",status:"prerelease"),fixture("1.1.0-beta.1","105"),fixture("1.1.0-beta.1","105",channel:"beta",status:nil),fixture("1.1.0","105",channel:"unknown"),fixture("1.1.0","99"),fixture("0.9.0","105")] {
+    for channel in UpdateChannel.allCases { require(!item.eligible(for:channel,installedBuild:"100",installedVersion:"1.0.0"),"draft, missing/inconsistent metadata, unknown channel and either downgrade excluded") }
+}
+require(!releases[2].eligible(for:.stable,installedBuild:"103",installedVersion:"1.1.0-beta.10"),"returning stable never downgrades")
+MainActor.assumeIsolated {
+    let domain = "local.alex.usage.channel-test." + UUID().uuidString
+    let defaults = UserDefaults(suiteName:domain)!
+    defer { defaults.removePersistentDomain(forName:domain) }
+    let engine = FakeEngine(); var errors:[String] = []
+    let controller = AppUpdateController(problem:{nil},makeEngine:{engine},showError:{errors.append($0)},defaults:defaults)
+    require(controller.channel == .stable,"default stable")
+    require(controller.selectChannel(.beta) && controller.channel == .beta && engine.checks == 1,"selecting channel checks immediately")
+    require(defaults.synchronize(),"flush isolated preference for cross-process test")
+    let reload = Process(); reload.executableURL = URL(fileURLWithPath:CommandLine.arguments[0])
+    reload.arguments = ["--verify-channel",domain]
+    try! reload.run(); reload.waitUntilExit()
+    require(reload.terminationStatus == 0,"restart persistence")
+    let reopened = AppUpdateController(problem:{nil},makeEngine:{engine},showError:{_ in},defaults:UserDefaults(suiteName:domain)!)
+    require(reopened.channel == .beta,"selection survives controller and defaults recreation")
+    require(controller.selectChannel(.stable) && engine.selected.last == .stable,"busy switch reaches cancellation engine")
+    engine.canChangeChannel = false
+    require(!controller.selectChannel(.beta) && controller.channel == .stable && errors.count == 1,"committed install cannot change channel or persist a false selection")
+    defaults.set("invalid",forKey:AppUpdateController.channelKey)
+    require(controller.channel == .stable,"unknown preference falls back stable")
+    #if canImport(Sparkle)
+    let item = SUAppcastItem(dictionary: ["sparkle:version":"103","sparkle:shortVersionString":"1.1.0-beta.10","sparkle:channel":"beta","sparkle:releaseStatus":"prerelease","enclosure":["url":releases[0].url!.absoluteString]])!
+    require(item.propertiesDictionary["sparkle:releaseStatus"] as? String == "prerelease" && item.channel == "beta","actual Sparkle preserves signed custom metadata")
+    let driver = ChannelUserDriver(hostBundle:.main,delegate:nil)
+    driver.begin()
+    var replies = 0
+    let oldReply = driver.sessionReply { (_: Bool) in replies += 1 }
+    driver.invalidate(); driver.begin(); oldReply(true)
+    require(replies == 0,"previous generation UI reply cannot apply after new channel begins")
+    let newReply = driver.sessionReply { (_: Bool) in replies += 1 }; newReply(true)
+    require(replies == 1,"current generation reply is delivered")
+    driver.invalidate()
+    var cancelled = 0, acknowledged = 0
+    driver.showUserInitiatedUpdateCheck { cancelled += 1 }
+    driver.showDownloadInitiated { cancelled += 1 }
+    driver.showReady(toInstallAndRelaunch: { choice in require(choice == .skip,"obsolete staged update cancelled"); cancelled += 1 })
+    driver.showUpdaterError(NSError(domain:"fixture",code:1),acknowledgement:{acknowledged += 1})
+    driver.showUpdateNotFoundWithError(NSError(domain:"fixture",code:2),acknowledgement:{acknowledged += 1})
+    require(cancelled == 3 && acknowledged == 2,"late old callbacks cancel/acknowledge without presenting stale UI")
+    driver.begin(); require(!driver.obsolete,"next generation can show fresh results")
+    // Recovered downloads must pass the same gate before Sparkle can present them.
+    driver.acceptsCandidate = { _ in false }
+    var rejectedResume = false
+    let stateArchive = NSKeyedArchiver(requiringSecureCoding: true)
+    stateArchive.encode(SPUUserUpdateStage.downloaded.rawValue, forKey: "SPUUserUpdateStateStage")
+    stateArchive.encode(true, forKey: "SPUUserUpdateStateUserInitiated")
+    stateArchive.finishEncoding()
+    let stateDecoder = try! NSKeyedUnarchiver(forReadingFrom: stateArchive.encodedData)
+    let resumedState = SPUUserUpdateState(coder: stateDecoder)!
+    require(resumedState.stage == .downloaded, "fixture represents downloaded stage")
+    driver.showUpdateFound(with: item, state: resumedState, reply: { choice in rejectedResume = choice == .skip })
+    require(rejectedResume, "resumed stale candidate skipped before UI")
+    #endif
+}
+print("PASS channel persistence/defaults, SemVer suffixes, stable/beta selection, no beta, empty feed, drafts, downgrade, install lock and stale callback suppression")
+
+let mismatched = UpdateCandidate(build: "106", version: "1.2.0", channel: nil, releaseStatus: "published", url: releases[2].url, notes: "Signed but mismatched")
+require(mismatched.hasInvalidMetadata(for: .stable, installedBuild: "100"), "mismatched URL yields metadata failure, not up to date")
+require(fixture("1.2.0-beta.1", "106").hasInvalidMetadata(for: .stable, installedBuild: "100"), "invalid suffix/status reported")
+require(!releases[0].hasInvalidMetadata(for: .stable, installedBuild: "100"), "other channel is ignored")
+require(!fixture("1.2.0", "106", status: "draft").hasInvalidMetadata(for: .stable, installedBuild: "100"), "draft is ignored")
+print("PASS selected-channel inconsistent metadata reporting")

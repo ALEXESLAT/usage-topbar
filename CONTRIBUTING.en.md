@@ -69,3 +69,15 @@ Batch consecutive feedback before one Testing installation. Prefer background bu
 Use minimal screenshots of affected controls. Before moving the user's pointer, typing, changing foreground focus or themes, explain the operation and wait for fresh explicit consent. Earlier acceptance consent does not carry forward. Foreground automation is paused until renewed consent. Report untested items honestly.
 
 Remove only known reproducible temporary outputs created by this task. Preserve source, real history, user files, final deliverables, necessary rollback copies and verification evidence.
+
+### System proxy compatibility
+
+The quota child process translates fixed macOS HTTP/HTTPS/SOCKS settings into CLI environment variables at launch. Explicit proxy environment variables take priority. Polling detects configuration changes and recreates the child; RPC errors retry with bounded backoff. No system settings are changed. PAC/auto-discovery is not translated, and VPN/TUN configurations without a fixed proxy retain their existing routing. This does not establish that a particular client or route works.
+
+`python3 tests/run.py` covers translation, explicit overrides, PAC/TUN, proxy switch/removal, and error reconnection. End-to-end UI acceptance while switching real clients remains a separate check.
+
+### Reset classification across gaps (2026-10-23)
+
+For the same account and quota series, recovery to 100% before the previously saved scheduled deadline is inferred as special when complete available-card identities, statuses, expiry fields and counts match. Gaps and the 90-second limit no longer block this inference. Explicit redeemed-card evidence takes priority. Missing evidence or a gap crossing the old deadline leaves full recovery unknown; the new deadline cannot establish a scheduled reset. Ordinary gaps and small unexplained increases have no reset band.
+
+Unknown full recovery uses the circular arrow and green band. Scheduled resets add clock hands; special resets retain the star. Legend, tooltip and accessibility labels distinguish them. Gaps and uncertain intervals remain; markers sit at the first recovery observation. visiblePoints derives old unknown classifications without rewriting stored events or files. This product inference does not claim to observe every card operation during a gap.

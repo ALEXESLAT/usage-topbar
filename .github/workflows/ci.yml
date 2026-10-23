@@ -46,6 +46,8 @@ jobs:
         run: python3 tests/run.py --startup
       - name: Manual updater policy (no keys)
         run: python3 tests/run-updater.py
+      - name: Update channel metadata
+        run: python3 tests/test-update-channels.py
       - name: Package metadata guard (no signing)
         run: python3 tests/test-update-package.py
       - name: Build and verify

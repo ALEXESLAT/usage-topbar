@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='usage-topbar-tests-') as temp:
  test_source = 'GradientRenderingTests.swift' if '--gradient' in sys.argv else 'RenderTests.swift' if render_dir else ('StartupTests.swift' if '--startup' in sys.argv else 'RegressionTests.swift')
  (work/'main.swift').write_text(declarations+'\n'+(root/'tests'/test_source).read_text())
  mock=(root/'tests/mock-server.py').read_text()
- for mode in ['recover','hang','stall','foreign','error','oversized']:
+ for mode in ['stable','recover','hang','stall','foreign','error','oversized']:
   p=work/mode;p.write_text(mock);p.chmod(0o755)
  subprocess.run(['xcrun','swiftc',str(work/'main.swift'),'-o',str(work/'tests'),'-target','arm64-apple-macos13.0','-module-cache-path',str(work/'cache'),'-framework','AppKit','-framework','CoreGraphics','-framework','IOKit','-framework','Network','-framework','ScreenCaptureKit'],check=True)
  if render_dir: render_dir.mkdir(parents=True,exist_ok=True)

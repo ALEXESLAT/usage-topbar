@@ -40,7 +40,14 @@ let menu=delegate.testMenu
 let entry=menu.items.first{$0.title=="渐变设置…"}
 require(entry != nil && entry!.isEnabled && entry!.target === delegate,"both variants expose enabled gradient entry")
 require(entry!.action==NSSelectorFromString("showGradientSettings"),"menu dispatches real editor method")
-require(menu.items.contains{$0.title=="检查更新…"} == !AppVariant.isTesting,"updates are production-only")
+require(menu.items.contains{$0.action==NSSelectorFromString("checkForUpdates")} == !AppVariant.isTesting,"updates are production-only")
+if !AppVariant.isTesting {
+ let channels=menu.items.compactMap(\.submenu).first { $0.items.contains { $0.representedObject as? String == "stable" } }!
+ require(channels.items.contains { $0.title.contains(AppVariant.versionLabel) },"current actual version in update settings")
+ require(channels.items.filter { $0.representedObject is String }.count == 2,"exactly stable/beta choices")
+ require(channels.items.first { $0.representedObject as? String == "stable" }?.state == .on,"fresh profile defaults stable")
+ require(channels.items.contains { $0.title == updateText("测试版可能不稳定","Beta releases may be unstable") },"instability warning")
+}
 require(!menu.items.contains{$0.title.contains("0.6.19")},"no stale hardcoded version")
 require(CommandLine.arguments.count==3 && AppVariant.versionLabel==CommandLine.arguments[2],"version is read from independently seeded bundle metadata")
 if AppVariant.isTesting {require(menu.items.contains{$0.title.contains(AppVariant.versionLabel)},"Testing label uses actual bundle version")}

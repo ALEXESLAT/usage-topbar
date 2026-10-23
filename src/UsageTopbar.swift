@@ -8,6 +8,7 @@ import IOKit.ps
 import Network
 import ScreenCaptureKit
 import ServiceManagement
+import SystemConfiguration
 import SwiftUI
 
 // Official app-server RateLimitResetCreditsSummary/RateLimitResetCredit fields.
@@ -641,6 +642,41 @@ struct UsageEdgeTabPreview: View {
     }
 }
 
+// The CLI networking stack consumes proxy environment variables, whereas GUI
+// launches normally only have macOS SystemConfiguration proxy settings.
+// Do not override explicit CLI routing or pretend a PAC URL is an HTTP proxy.
+enum CodexProxyEnvironment {
+    static func current() -> [String: String] {
+        let settings = CFNetworkCopySystemProxySettings()?.takeRetainedValue() as? [String: Any] ?? [:]
+        return resolve(base: ProcessInfo.processInfo.environment, settings: settings)
+    }
+
+    static func resolve(base: [String: String], settings: [String: Any]) -> [String: String] {
+        var result = base
+        let explicit = ["http_proxy", "https_proxy", "all_proxy"]
+        guard !base.contains(where: { explicit.contains($0.key.lowercased()) && !$0.value.isEmpty }) else { return result }
+        guard (settings["ProxyAutoConfigEnable"] as? NSNumber)?.boolValue != true,
+              (settings["ProxyAutoDiscoveryEnable"] as? NSNumber)?.boolValue != true else { return result }
+        func endpoint(_ name: String, scheme: String) -> String? {
+            guard (settings[name + "Enable"] as? NSNumber)?.boolValue == true,
+                  let host = settings[name + "Proxy"] as? String, !host.isEmpty,
+                  !host.contains(where: { $0.isWhitespace || "/@?#".contains($0) }),
+                  let port = settings[name + "Port"] as? NSNumber,
+                  port.doubleValue == Double(port.intValue), (1...65535).contains(port.intValue) else { return nil }
+            var url = URLComponents(); url.scheme = scheme; url.host = host; url.port = port.intValue
+            return url.string
+        }
+        for (name, key, scheme) in [("HTTP", "HTTP_PROXY", "http"), ("HTTPS", "HTTPS_PROXY", "http"), ("SOCKS", "ALL_PROXY", "socks5h")] {
+            if let value = endpoint(name, scheme: scheme) { result[key] = value }
+        }
+        if base["NO_PROXY"] == nil && base["no_proxy"] == nil,
+           let exceptions = settings["ExceptionsList"] as? [String], !exceptions.isEmpty {
+            result["NO_PROXY"] = exceptions.map { $0.hasPrefix("*.") ? String($0.dropFirst()) : $0 }.joined(separator: ",")
+        }
+        return result
+    }
+}
+
 final class RateLimitClient {
     var onSnapshot: ((UsageSnapshot) -> Void)?
     var onHistoryReadings: (([HistoryReading]) -> Void)?
@@ -668,14 +704,18 @@ final class RateLimitClient {
     private let timeoutInterval: TimeInterval
     private let retryDelays: [TimeInterval]
     private let monitorsPath: Bool
+    private let environmentProvider: () -> [String: String]
+    private var launchedEnvironment: [String: String]?
 
     // Dependency injection keeps regression tests entirely local and credential-free.
     init(executable: String? = nil, timeout: TimeInterval = 10,
-         retryDelays: [TimeInterval] = [1, 2, 5, 10, 30], monitorsPath: Bool = true) {
+         retryDelays: [TimeInterval] = [1, 2, 5, 10, 30], monitorsPath: Bool = true,
+         environment: @escaping () -> [String: String] = CodexProxyEnvironment.current) {
         self.executableOverride = executable
         self.timeoutInterval = timeout
         self.retryDelays = retryDelays.isEmpty ? [30] : retryDelays
         self.monitorsPath = monitorsPath
+        self.environmentProvider = environment
     }
 
     func start() {
@@ -703,6 +743,9 @@ final class RateLimitClient {
         let stdinPipe = Pipe(), stdoutPipe = Pipe(), stderrPipe = Pipe()
         child.executableURL = URL(fileURLWithPath: executable)
         child.arguments = ["app-server", "--stdio"]
+        let environment = environmentProvider()
+        child.environment = environment
+        launchedEnvironment = environment
         child.standardInput = stdinPipe
         child.standardOutput = stdoutPipe
         child.standardError = stderrPipe
@@ -784,6 +827,15 @@ final class RateLimitClient {
         guard !isStopped else { return }
         guard process?.isRunning == true else {
             fail("Codex unavailable · retrying", restart: true)
+            return
+        }
+        // Refresh the child routing after a system proxy switch, including removal.
+        // This does not change system settings and also works when NWPath stays satisfied.
+        if launchedEnvironment != environmentProvider() {
+            onConnectionState?(.checking)
+            onStatus?("Proxy changed · reconnecting")
+            disconnectProcess()
+            launchProcess()
             return
         }
         guard ready, pendingID == nil else { return }
@@ -879,7 +931,7 @@ final class RateLimitClient {
         responseTimeout?.invalidate(); responseTimeout = nil
         pendingID = nil
         if object["error"] != nil {
-            fail("Codex request failed", restart: !ready)
+            fail("Codex request failed", restart: true)
             return
         }
         guard let result = object["result"] as? [String: Any] else {
@@ -1471,7 +1523,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var sleeping = false
     private let loginItemController = LoginItemController()
     private var loginItemMenu: NSMenuItem?
-    @MainActor private lazy var appUpdater = AppUpdateController.production()
+    @MainActor private lazy var appUpdater: AppUpdateController = {
+        guard let context = AcceptanceContext.current else { return .production() }
+        return AppUpdateController(problem: { updateText("离线验收：未获取在线更新，当前应用保持不变。", "Offline acceptance: online updates were not obtained. The current app is unchanged.") },
+            makeEngine: { preconditionFailure("Offline acceptance never creates an updater") },
+            showError: { message in
+                let alert = NSAlert(); alert.messageText = updateText("离线验收", "Offline acceptance")
+                alert.informativeText = message; alert.runModal()
+            }, readChannel: { context.preferences.data(forKey: AppUpdateController.channelKey).flatMap { String(data: $0, encoding: .utf8) } },
+            writeChannel: { context.preferences.set(Data($0.utf8), forKey: AppUpdateController.channelKey) })
+    }()
+    private var selectedUpdateChannel: UpdateChannel { MainActor.assumeIsolated { appUpdater.channel } }
     private var didStart = false
     private var isTerminating = false
 
@@ -1601,7 +1663,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         loginItemMenu = menu.addItem(withTitle: "开机自启", action: #selector(toggleLoginItem), keyEquivalent: "")
         menu.delegate = self
-        if !AppVariant.isTesting && AcceptanceContext.current == nil { menu.addItem(withTitle: "检查更新…", action: #selector(checkForUpdates), keyEquivalent: "") }
+        if !AppVariant.isTesting {
+            let settings = NSMenu()
+            settings.delegate = self
+            let version = settings.addItem(withTitle: updateText("当前版本：", "Current version: ") + AppVariant.versionLabel, action: nil, keyEquivalent: "")
+            version.isEnabled = false
+            for channel in UpdateChannel.allCases {
+                let item = settings.addItem(withTitle: channel.title, action: #selector(selectUpdateChannel(_:)), keyEquivalent: "")
+                item.representedObject = channel.rawValue; item.target = self
+                item.state = selectedUpdateChannel == channel ? .on : .off
+            }
+            let warning = settings.addItem(withTitle: updateText("测试版可能不稳定", "Beta releases may be unstable"), action: nil, keyEquivalent: "")
+            warning.isEnabled = false
+            let parent = menu.addItem(withTitle: updateText("更新通道：", "Update channel: ") + selectedUpdateChannel.title, action: nil, keyEquivalent: "")
+            parent.submenu = settings
+            menu.addItem(withTitle: updateText("检查更新…", "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
+        }
         menu.addItem(withTitle: "退出 " + AppVariant.name, action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
         return menu
@@ -1619,7 +1696,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    func menuNeedsUpdate(_ menu: NSMenu) { updateLoginItemMenu() }
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        updateLoginItemMenu()
+        for item in menu.items {
+            if item.submenu?.items.contains(where: { $0.representedObject as? String == UpdateChannel.stable.rawValue }) == true {
+                item.title = updateText("更新通道：", "Update channel: ") + selectedUpdateChannel.title
+            }
+            if let raw = item.representedObject as? String, let channel = UpdateChannel(rawValue: raw) {
+                item.state = selectedUpdateChannel == channel ? .on : .off
+            }
+        }
+    }
+    @MainActor @objc private func selectUpdateChannel(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let channel = UpdateChannel(rawValue: raw) else { return }
+        appUpdater.selectChannel(channel)
+    }
 
     private func updateLoginItemMenu() {
         if AcceptanceContext.current != nil { loginItemMenu?.isEnabled = false; loginItemMenu?.title = "离线验收不读取或修改自启"; return }
@@ -1972,7 +2064,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func showGradientSettings() { gradientEditor.show() }
-    @MainActor @objc private func checkForUpdates() { guard AcceptanceContext.current == nil else { return }; appUpdater.checkForUpdates() }
+    @MainActor @objc private func checkForUpdates() { appUpdater.checkForUpdates() }
     @objc private func toggleAcceptanceAppearance() {
         guard AcceptanceContext.current != nil else { return }
         let dark = !fallbackDarkAppearance(); NSApp.appearance = NSAppearance(named: dark ? .darkAqua : .aqua); applyContrast(isDarkBackground: dark)

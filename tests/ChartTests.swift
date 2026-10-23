@@ -404,3 +404,45 @@ check(hiddenContent.chart.points==hiddenInitial,"hidden window does not refresh 
 hiddenContent.refresh()
 check(hiddenContent.chart.points==hiddenStore.visiblePoints(series:hiddenReading.series),"opening refresh catches up to latest data")
 print("PASS retained hidden chart skips refresh and catches up on explicit presentation refresh")
+
+// Unknown full recovery gets the previous plain arrow; natural adds visible clock hands.
+var unknownPair=pair
+unknownPair[1].event=HistoryReset(kind:.unknown,lowerBound:pair[0].reading.time,upperBound:pair[1].reading.time,exactTime:nil,inferred:false,source:"observed-full-recovery")
+check(HistoryChartGeometry.resetConnector(unknownPair,at:1,from:CGPoint(x:0,y:90),to:CGPoint(x:10,y:0)) != nil,"observed unknown recovery has green band")
+unknownPair[1].event=HistoryReset(kind:.unknown,lowerBound:pair[0].reading.time,upperBound:pair[1].reading.time,exactTime:nil,inferred:false,source:"insufficient-reset-evidence")
+check(HistoryChartGeometry.resetConnector(unknownPair,at:1,from:CGPoint(x:0,y:90),to:CGPoint(x:10,y:0)) == nil,"ordinary unknown is not a recovery marker")
+let kinds:[HistoryResetKind]=[.unknown,.cycle,.special,.card]
+let sheet=NSBitmapImageRep(bitmapDataPlanes:nil,pixelsWide:320,pixelsHigh:140,bitsPerSample:8,samplesPerPixel:4,hasAlpha:true,isPlanar:false,colorSpaceName:.deviceRGB,bytesPerRow:0,bitsPerPixel:0)!
+NSGraphicsContext.saveGraphicsState();NSGraphicsContext.current=NSGraphicsContext(bitmapImageRep:sheet)
+for (row,dark) in [false,true].enumerated() {
+ let y=CGFloat(row*70);(dark ? NSColor.black:NSColor.white).setFill();NSBezierPath(rect:CGRect(x:0,y:y,width:320,height:70)).fill()
+ NSAppearance(named:dark ? .darkAqua:.aqua)!.performAsCurrentDrawingAppearance {
+  for (i,kind) in kinds.enumerated() {
+   for (j,size) in [16.0,24.0].enumerated() {
+    HistoryChartView.resetIcon(kind).draw(in:CGRect(x:CGFloat(i*80+j*34+8),y:y+24,width:size,height:size))
+   }
+  }
+ }
+}
+NSGraphicsContext.restoreGraphicsState()
+try sheet.representation(using:.png,properties:[:])!.write(to:output.appendingPathComponent("reset-symbols-light-dark.png"))
+func iconPixels(_ kind:HistoryResetKind,_ size:Int)->Data {
+ let bitmap=NSBitmapImageRep(bitmapDataPlanes:nil,pixelsWide:size,pixelsHigh:size,bitsPerSample:8,samplesPerPixel:4,hasAlpha:true,isPlanar:false,colorSpaceName:.deviceRGB,bytesPerRow:0,bitsPerPixel:0)!
+ NSGraphicsContext.saveGraphicsState();NSGraphicsContext.current=NSGraphicsContext(bitmapImageRep:bitmap)
+ NSAppearance(named:.aqua)!.performAsCurrentDrawingAppearance { HistoryChartView.resetIcon(kind).draw(in:CGRect(x:0,y:0,width:size,height:size)) }
+ NSGraphicsContext.restoreGraphicsState()
+ return Data(bytes:bitmap.bitmapData!,count:bitmap.bytesPerRow*size)
+}
+for size in [16,24] {
+ let icons=kinds.map { iconPixels($0,size) }
+ check(Set(icons).count==4,"all four symbols distinguishable at compact sizes")
+}
+check(Set(kinds.map(HistoryResetLegend.label)).count==4,"distinct localized legend labels")
+print("PASS unknown recovery band versus ordinary unknown, four distinct 16/24px symbols, localized legend, light/dark icon sheet")
+
+let layoutFixture = HistoryPanelContent(store: store, expanded: true)
+layoutFixture.seriesButton.isHidden = false
+layoutFixture.message.stringValue = String(repeating: "Network unavailable ", count: 12)
+layoutFixture.layout()
+check(layoutFixture.message.frame.maxX + 8 <= layoutFixture.resetLegend.frame.minX, "long multi-series error stays clear of legend")
+print("PASS multi-series error / reset legend layout")

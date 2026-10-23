@@ -55,10 +55,10 @@ let broken=QuotaHistoryStore(file:corrupt,now:base);feed(broken,reading(0));let 
 print("PASS history: fresh/throttle, persistence/restart, offline/unknown, account/type isolation, exact cycles, expired/redeemed/replaced cards, inferred/unknown resets, dedup, three calendar months, digest and corrupt-file preservation")
 
 let acrossGap=HistoryResetClassifier.classify(previous:reading(0,10),current:reading(259200,100,reset:base.timeIntervalSince1970+864000))
-expect(acrossGap?.kind == .unknown,"offline interval cannot rule out unseen card use")
+expect(acrossGap?.kind == .special,"early recovery with complete unchanged cards supports inferred special across gap")
 let staleWindow:[String:Any] = ["accountId":"fixture","rateLimits":["primary":["usedPercent":0,"windowDurationMins":300,"resetsAt":base.timeIntervalSince1970-1]]]
 expect(HistoryReading.parse(staleWindow,at:base).isEmpty,"expired quota not saved as fresh")
-print("PASS expired window and unseen card use in offline interval")
+print("PASS expired window and inferred early reset across offline interval")
 
 let reasons=QuotaHistoryStore(file:nil,now:base)
 feed(reasons,reading(0));expect(reasons.points.last!.gapReason=="startup","startup reason")
@@ -133,3 +133,19 @@ expect(diskPoints(burstFile)==shutdownPoints && burst.error==nil,"late completio
 feed(burst,reading(1230,account:"c"));burst.unavailable(reason:"sleep");burst.flushPersistence()
 expect(diskPoints(burstFile)==burst.points,"sleep flush includes final fresh reading")
 print("PASS asynchronous retry, main-thread notification, coalesced account changes, shutdown ordering and sleep flush")
+
+let cacheStore = QuotaHistoryStore(file: nil)
+let cacheNow = Date()
+func cacheReading(_ account: String, _ time: Double, _ remaining: Double) -> HistoryReading {
+ HistoryReading(account: account, series: "weekly", time: time, remaining: remaining, resetsAt: time+604800, duration: 604800, cards: [], availableCards: 0)
+}
+cacheStore.receive([cacheReading("a", cacheNow.timeIntervalSince1970-30, 46)], now: cacheNow)
+let cachedA = cacheStore.visiblePoints(series: "weekly")
+precondition(cacheStore.visiblePoints(series: "weekly") == cachedA)
+cacheStore.receive([cacheReading("a", cacheNow.timeIntervalSince1970, 100)], now: cacheNow)
+precondition(cacheStore.visiblePoints(series: "weekly").last?.event?.kind == .special)
+cacheStore.receive([cacheReading("b", cacheNow.timeIntervalSince1970, 20)], now: cacheNow)
+precondition(cacheStore.visiblePoints(series: "weekly").allSatisfy { $0.reading.account == "b" })
+cacheStore.receive([], now: cacheNow)
+precondition(cacheStore.visiblePoints(series: "weekly").isEmpty)
+print("PASS derived cache invalidates on revision, account switch and missing identity")

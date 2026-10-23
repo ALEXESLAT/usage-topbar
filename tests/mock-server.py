@@ -14,6 +14,8 @@ for line in sys.stdin:
   if mode=='error':
    print(json.dumps({'id':req['id'],'error':{'code':-1,'message':'synthetic failure'}}),flush=True);continue
   limits={'primary':{'usedPercent':40,'windowDurationMins':300,'resetsAt':2000000000}}
+  if mode=='stable' and os.environ.get('HTTPS_PROXY')=='http://127.0.0.1:7890':
+   limits['primary']['usedPercent']=50
   if mode=='foreign':
    result={'rateLimitsByLimitId':{'other-model':limits}}
   else: result={'rateLimits':limits}

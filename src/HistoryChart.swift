@@ -245,7 +245,7 @@ enum HistoryChartGeometry {
 }
 
 final class HistoryChartView: NSView {
-    var points: [HistoryPoint] = [] { didSet { cacheSize=nil;clearCrosshair();needsDisplay = true } }
+    var points: [HistoryPoint] = [] { didSet { if points != oldValue { cacheSize=nil;clearCrosshair();needsDisplay = true } } }
     var start = Date().timeIntervalSince1970 - 4 * 86400.0
     var end = Date().timeIntervalSince1970
     var now: () -> Double = { Date().timeIntervalSince1970 }
@@ -517,7 +517,14 @@ final class HistoryChartView: NSView {
             ("等待有效采样" as NSString).draw(at: CGPoint(x: visibleRect.midX-45, y: plot.midY), withAttributes: [.font: NSFont.systemFont(ofSize: 12), .foregroundColor: NSColor.secondaryLabelColor])
         }
     }
-    private func drawEvent(_ kind: HistoryResetKind, at point: CGPoint, time: Double, ink: NSColor, count:Int=1) {
+    static func resetIcon(_ kind: HistoryResetKind) -> NSImage {
+        NSImage(size: NSSize(width:28,height:28), flipped:true) { _ in
+            let chart = HistoryChartView(frame:NSRect(x:0,y:0,width:28,height:28))
+            chart.drawEvent(kind,at:CGPoint(x:14,y:12),time:0,ink:.labelColor)
+            return true
+        }
+    }
+    func drawEvent(_ kind: HistoryResetKind, at point: CGPoint, time: Double, ink: NSColor, count:Int=1) {
         let center=CGPoint(x:max(12,min(bounds.width-12,point.x)),y:12)
         NSGraphicsContext.saveGraphicsState();defer { NSGraphicsContext.restoreGraphicsState() }
         let scale=NSAffineTransform();scale.translateX(by:center.x,yBy:center.y)
@@ -574,6 +581,15 @@ final class HistoryChartView: NSView {
                 arrow(CGPoint(x:x+7,y:y+6),4.7)
             } else {
                 arrow(CGPoint(x:center.x,y:center.y+1),9.5)
+                if kind == .cycle {
+                    // Clock hands inside the existing circular arrow: distinct at small sizes.
+                    let hands=NSBezierPath();hands.lineWidth=1.8;hands.lineCapStyle = .round;hands.lineJoinStyle = .round
+                    hands.move(to:CGPoint(x:center.x,y:center.y-4))
+                    hands.line(to:CGPoint(x:center.x,y:center.y+1))
+                    hands.line(to:CGPoint(x:center.x+4,y:center.y+3))
+                    hands.stroke()
+                    ink.setFill();NSBezierPath(ovalIn:CGRect(x:center.x-1,y:center.y,width:2,height:2)).fill()
+                }
                 if kind == .special {
                     let star=NSBezierPath();let x=center.x,y=center.y+1
                     star.move(to:CGPoint(x:x,y:y-5));star.curve(to:CGPoint(x:x+5,y:y),controlPoint1:CGPoint(x:x+0.625,y:y-2.25),controlPoint2:CGPoint(x:x+2.25,y:y-0.625))
@@ -715,12 +731,27 @@ final class HistoryHoverLabels:NSView {
 
 }
 
+enum HistoryResetLegend {
+    static func text(_ zh: String, _ en: String) -> String { Locale.preferredLanguages.first?.hasPrefix("zh") == true ? zh : en }
+    static func label(_ kind: HistoryResetKind) -> String {
+        switch kind {
+        case .cycle: return text("自然重置（时钟与回转）", "Scheduled reset (clock and arrow)")
+        case .card: return text("重置卡（卡片与回转）", "Reset credit (card and arrow)")
+        case .special: return text("特殊重置（四角星与回转）", "Special reset (star and arrow)")
+        case .unknown: return text("已恢复，原因未知（回转箭头）", "Recovery, cause unknown (arrow)")
+        }
+    }
+    static var explanation: String { text("绿条表示已观察到的恢复。未知不等于自然重置；断档保留，标记位于恢复后的首个采样点，不代表精确发生时间。", "Green bands mark observed recovery. Unknown is not a scheduled reset. Gaps remain; markers show the first recovery sample, not an exact event time.") }
+    static var tooltip: String { [.cycle,.card,.special,.unknown].map { label($0) }.joined(separator: "\n") + "\n" + explanation }
+}
+
 final class HistoryPanelContent: NSView {
     let chart = HistoryChartView()
     let scroll = NSScrollView()
     let seriesButton = NSPopUpButton()
     let nowButton = NSButton(title:"回到现在",target:nil,action:nil)
     let message = NSTextField(labelWithString: "")
+    let resetLegend = NSPopUpButton(frame: .zero, pullsDown: true)
     private let store: any HistoryDataSource
     private let expanded: Bool
     private var seriesKeys: [String] = []
@@ -749,6 +780,18 @@ final class HistoryPanelContent: NSView {
         seriesButton.target=self; seriesButton.action=#selector(selectSeries)
         nowButton.bezelStyle = .rounded; nowButton.font = .systemFont(ofSize:11); nowButton.target=self; nowButton.action=#selector(goNow)
         addSubview(seriesButton); if expanded { nowButton.isBordered=false;nowSurface.content.addSubview(nowButton);addSubview(nowSurface) }
+        resetLegend.addItem(withTitle: HistoryResetLegend.text("图例", "Legend"))
+        for kind: HistoryResetKind in [.cycle,.card,.special,.unknown] {
+            resetLegend.addItem(withTitle: HistoryResetLegend.label(kind))
+            resetLegend.lastItem?.image = HistoryChartView.resetIcon(kind)
+            resetLegend.lastItem?.isEnabled = false
+        }
+        resetLegend.toolTip = HistoryResetLegend.tooltip
+        resetLegend.setAccessibilityLabel(HistoryResetLegend.text("重置图例", "Reset legend"))
+        resetLegend.font = .systemFont(ofSize:10)
+        addSubview(resetLegend)
+        chart.toolTip = HistoryResetLegend.tooltip
+        chart.setAccessibilityLabel(HistoryResetLegend.text("剩余额度历史，纵轴0至100百分比。", "Remaining quota history, 0 to 100 percent. ") + HistoryResetLegend.tooltip)
         message.font = .systemFont(ofSize:10); message.textColor = .secondaryLabelColor; addSubview(message)
         scroll.drawsBackground=false; scroll.hasHorizontalScroller=false; scroll.hasVerticalScroller=false
         scroll.horizontalScrollElasticity = expanded && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? .allowed : .none; scroll.verticalScrollElasticity = .none
@@ -779,8 +822,10 @@ final class HistoryPanelContent: NSView {
         seriesButton.frame=CGRect(x:expanded ? 86:10,y:bounds.height-(expanded ? 35:27),width:120,height:24)
         nowSurface.frame=CGRect(x:bounds.width-110,y:bounds.height-35,width:92,height:24)
         nowButton.frame=nowSurface.bounds;nowButton.autoresizingMask=[.width,.height]
-        message.frame=CGRect(x:seriesButton.isHidden ? (expanded ? 86:10) : (expanded ? 218:140),y:bounds.height-(expanded ? 31:23),width:max(1,bounds.width-275),height:18)
-        let headerNeeded = expanded || !seriesButton.isHidden || !message.stringValue.isEmpty
+        resetLegend.frame=CGRect(x:bounds.width-(expanded ? 178:72),y:bounds.height-(expanded ? 35:27),width:62,height:24)
+        let messageX: CGFloat = seriesButton.isHidden ? (expanded ? 86:10) : (expanded ? 218:140)
+        message.frame=CGRect(x:messageX,y:bounds.height-(expanded ? 31:23),width:max(1,resetLegend.frame.minX-messageX-8),height:18)
+        let headerNeeded = true // Keep the reset legend available in compact and expanded charts.
         let chartHeight = bounds.height - (expanded ? (headerNeeded ? 44:24):(headerNeeded ? 28:12))
         let gutter:CGFloat=expanded ? 64:32
         let bottom:CGFloat=expanded ? 12:6,right:CGFloat=expanded ? 14:8

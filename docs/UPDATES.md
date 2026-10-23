@@ -2,7 +2,7 @@
 
 [English](UPDATES.en.md)
 
-0.5.0 首次加入正式手动更新通道。**0.4.0 没有更新器，需要手动安装一次 0.5.0；以后使用菜单“检查更新…”。** 更新使用固定的 [main 签名清单](https://raw.githubusercontent.com/ALEXESLAT/usage-topbar/main/updates/appcast.xml)，仅接受本仓库 HTTPS Release ZIP 和递增整数 build。测试预发布保留在独立分支，不是正式通道。
+0.5.0 首次加入正式手动更新通道。**0.4.0 没有更新器，需要手动安装一次 0.5.0；以后使用菜单“检查更新…”。** 更新使用固定的 [main 签名清单](https://raw.githubusercontent.com/ALEXESLAT/usage-topbar/main/updates/appcast.xml)，仅接受本仓库 HTTPS Release ZIP 和递增整数 build。正式版和测试版通过同一签名清单内的通道字段区分，见下文。
 
 ## 用户流程与限制
 
@@ -42,3 +42,20 @@
 更新请求仅向 GitHub/CDN 发送普通 HTTP/连接元数据，不附加账户、额度、卡或凭据；远程发布说明、JavaScript 和画像关闭。签名清单验证失败时不允许超时降级。
 
 [官方接入与安全模型](https://sparkle-project.org/documentation/) · [安全设置](https://sparkle-project.org/documentation/customization/) · [固定版本验证源码](https://github.com/sparkle-project/Sparkle/blob/2.10.0/Sparkle/SUUpdateValidator.m)
+
+## 正式版与测试版更新通道
+
+菜单“更新通道”显示当前版本和已选通道。默认正式版，选择保存在 `updates.channel`，重开保持。测试版可能不稳定；它同时接收兼容的新测试版和正式版，没有测试候选时仍可更新正式版。无任何合格新版时由 Sparkle 显示无更新；网络/签名错误保持当前安装并可重试。独立的 `UsageTopbar Testing.app` 开发构建仍禁用更新器；公开 beta 使用正式 Bundle ID、真实历史和 release 构建配置，避免产生第二套用户数据。
+
+同一个签名 `main/updates/appcast.xml` 中，正式版不带 `sparkle:channel`，并声明 `<sparkle:releaseStatus>published</sparkle:releaseStatus>`；测试版带 `<sparkle:channel>beta</sparkle:channel>` 和 `<sparkle:releaseStatus>prerelease</sparkle:releaseStatus>`，版本使用如 `1.2.0-beta.1` 的 SemVer 后缀。草稿、未知状态、缺失或不一致元数据均排除。0.8.0正式清单包含此状态字段；后续候选必须按下述流程发布。
+
+先由 Sparkle 排除不兼容系统/硬件，再按 SemVer（包括数字预发布段）选择最新候选；同时要求整数 build 严格增加，营销版本不降低。正式版高于同版本 beta，`beta.10` 高于 `beta.2`，`+build` 元数据不影响版本顺序。切回正式版不会降级；若已装 beta 高于最新正式版，会等待更高版本的正式发布。
+
+切换立即保存选择，使旧会话失效，并通过 Sparkle 实际取消/关闭回调清除旧候选；旧会话结束后重新检查。旧回调不能覆盖新通道。已进入不可撤销的安装/稍后重启阶段则拒绝切换，并保持原选择，需安装结束后再改。更新仍需用户确认下载和安装，无后台自动更新。
+
+### 最小 beta 发布流程（本次未执行）
+
+1. 使用正式身份、release 配置和递增的全局 build，设置 SemVer 预发布版本；完成测试和包校验。
+2. 在发布工作目录生成包含稳定项与 beta 项的清单：beta 新项使用 `generate_appcast --channel beta`，正式项用默认通道。补入对应 `sparkle:releaseStatus`，保留版本绑定的内嵌说明、架构和系统要求。使用现有账户执行 `sign_update --account ALEXESLAT.usage-topbar appcast.xml` 重新签名最终清单；签名后不再改写。
+3. `verify-update-release.py` 会检查通道/状态/版本一致性及原有两类签名、身份、URL、长度。发布实际非 draft 的 GitHub prerelease 后，保存公开 REST Release JSON；下载复验时加 `--release-json release.json`，核对 `draft=false`、`prerelease=true` 和精确标签。正式版对应 `prerelease=false`。最后才启用同一 main 签名清单，绝不将草稿加入 feed。
+4. 本次只用模拟数据验证，不创建 release、不使用私钥、不安装。测试：`python3 tests/run-updater.py`、`python3 tests/test-update-channels.py`、`python3 tests/run-release-config.py`。实际切换通道、下载/安装的标准 UI 验收尚未进行。

@@ -11,6 +11,26 @@ SPARKLE='{http://www.andymatuschak.org/xml-namespaces/sparkle}'
 spec=importlib.util.spec_from_file_location('release_guard',ROOT/'scripts/sign-update.py')
 guard=importlib.util.module_from_spec(spec);spec.loader.exec_module(guard)
 
+def validate_channel(item, version):
+    # Signed publication state is part of the release contract. A draft is never eligible.
+    status=item.findtext(SPARKLE+'releaseStatus')
+    channel=item.findtext(SPARKLE+'channel')
+    pattern=r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?'
+    match=re.fullmatch(pattern,version)
+    if not match: raise ValueError('Invalid semantic release version')
+    pre=match.group(5)
+    if pre and any(x.isdigit() and len(x)>1 and x.startswith('0') for x in pre.split('.')): raise ValueError('Invalid numeric prerelease identifier')
+    if pre:
+        if channel!='beta' or status!='prerelease': raise ValueError('Prerelease requires beta channel and explicit prerelease status')
+    elif channel is not None or status!='published': raise ValueError('Stable release requires default channel and explicit published status')
+
+def validate_github_release(release, version):
+    # Optional public Release JSON snapshot at the post-publication verification gate.
+    if release.get('draft') is not False or release.get('tag_name')!='v'+version:
+        raise ValueError('GitHub release must be published with the exact tag')
+    if release.get('prerelease') is not ('-' in version.split('+')[0]):
+        raise ValueError('GitHub prerelease status does not match signed channel metadata')
+
 def inspect(archive,feed,version,build):
     metadata=guard.validate(archive,version,build)
     data=feed.read_bytes()
@@ -20,6 +40,7 @@ def inspect(archive,feed,version,build):
     items=[i for i in root.findall('./channel/item') if i.findtext(SPARKLE+'version')==build]
     if len(items)!=1: raise ValueError('Expected exactly one matching feed build')
     item=items[0];enclosure=item.find('enclosure')
+    validate_channel(item,version)
     notes=item.find('description')
     if notes is None or not (notes.text or '').strip() or notes.get(SPARKLE+'descriptionFormat')!='plain-text': raise ValueError('Missing version-bound plain-text release notes')
     if enclosure is None or item.findtext(SPARKLE+'shortVersionString')!=version: raise ValueError('Feed/package version mismatch')
@@ -33,10 +54,12 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('archive',type=Path);p.add_argument('feed',type=Path)
     p.add_argument('--version',required=True);p.add_argument('--build',required=True)
+    p.add_argument('--release-json',type=Path,help='Public GitHub REST Release JSON snapshot; rejects drafts and prerelease mismatches')
     p.add_argument('--expected-sha256',help='Required known ZIP hash when checking a public download')
     p.add_argument('--expected-feed-sha256',help='Known signed-feed hash before upload')
     a=p.parse_args()
     try:
+        if a.release_json: validate_github_release(json.loads(a.release_json.read_text()),a.version)
         # Freeze both inputs before metadata and cryptographic verification.
         with tempfile.TemporaryDirectory(prefix='usage-topbar-verify-') as tmp:
             work=Path(tmp);archive=work/a.archive.name;feed=work/'appcast.xml'
