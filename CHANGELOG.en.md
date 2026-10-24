@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1-beta.1 (57) — prerelease
+
+Simplify legend, menu and updater copy. Stable remains 0.8.0 (56).
+
+
 ## 0.8.0 (56) — stable release
 
 Integrates update channels, reset inference/icons and proxy reconnect support; fixes resumed-candidate validation and legend layout, and caches derived history. See [candidate notes](RELEASE_NOTES.en.md).

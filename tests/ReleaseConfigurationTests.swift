@@ -46,7 +46,8 @@ if !AppVariant.isTesting {
  require(channels.items.contains { $0.title.contains(AppVariant.versionLabel) },"current actual version in update settings")
  require(channels.items.filter { $0.representedObject is String }.count == 2,"exactly stable/beta choices")
  require(channels.items.first { $0.representedObject as? String == "stable" }?.state == .on,"fresh profile defaults stable")
- require(channels.items.contains { $0.title == updateText("测试版可能不稳定","Beta releases may be unstable") },"instability warning")
+ require(channels.items.first { $0.representedObject as? String == "beta" }?.toolTip == updateText("测试版可能不稳定","Beta releases may be unstable"),"beta warning stays with its option")
+ require(channels.items.count == 3,"version and two channel choices, no secondary description rows")
 }
 require(!menu.items.contains{$0.title.contains("0.6.19")},"no stale hardcoded version")
 require(CommandLine.arguments.count==3 && AppVariant.versionLabel==CommandLine.arguments[2],"version is read from independently seeded bundle metadata")

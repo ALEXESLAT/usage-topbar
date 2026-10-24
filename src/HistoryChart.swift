@@ -735,13 +735,13 @@ enum HistoryResetLegend {
     static func text(_ zh: String, _ en: String) -> String { Locale.preferredLanguages.first?.hasPrefix("zh") == true ? zh : en }
     static func label(_ kind: HistoryResetKind) -> String {
         switch kind {
-        case .cycle: return text("自然重置（时钟与回转）", "Scheduled reset (clock and arrow)")
-        case .card: return text("重置卡（卡片与回转）", "Reset credit (card and arrow)")
-        case .special: return text("特殊重置（四角星与回转）", "Special reset (star and arrow)")
-        case .unknown: return text("已恢复，原因未知（回转箭头）", "Recovery, cause unknown (arrow)")
+        case .cycle: return text("自然重置", "Scheduled reset")
+        case .card: return text("重置卡", "Reset credit")
+        case .special: return text("特殊重置", "Special reset")
+        case .unknown: return text("原因未知", "Unknown cause")
         }
     }
-    static var explanation: String { text("绿条表示已观察到的恢复。未知不等于自然重置；断档保留，标记位于恢复后的首个采样点，不代表精确发生时间。", "Green bands mark observed recovery. Unknown is not a scheduled reset. Gaps remain; markers show the first recovery sample, not an exact event time.") }
+    static var explanation: String { text("绿条表示额度恢复；标记时间为首次观测时间。", "Green bands show quota recovery; markers indicate when it was first observed.") }
     static var tooltip: String { [.cycle,.card,.special,.unknown].map { label($0) }.joined(separator: "\n") + "\n" + explanation }
 }
 
@@ -786,11 +786,11 @@ final class HistoryPanelContent: NSView {
             resetLegend.lastItem?.image = HistoryChartView.resetIcon(kind)
             resetLegend.lastItem?.isEnabled = false
         }
-        resetLegend.toolTip = HistoryResetLegend.tooltip
+        resetLegend.toolTip = nil
         resetLegend.setAccessibilityLabel(HistoryResetLegend.text("重置图例", "Reset legend"))
         resetLegend.font = .systemFont(ofSize:10)
         addSubview(resetLegend)
-        chart.toolTip = HistoryResetLegend.tooltip
+        chart.toolTip = nil
         chart.setAccessibilityLabel(HistoryResetLegend.text("剩余额度历史，纵轴0至100百分比。", "Remaining quota history, 0 to 100 percent. ") + HistoryResetLegend.tooltip)
         message.font = .systemFont(ofSize:10); message.textColor = .secondaryLabelColor; addSubview(message)
         scroll.drawsBackground=false; scroll.hasHorizontalScroller=false; scroll.hasVerticalScroller=false
@@ -853,10 +853,10 @@ final class HistoryPanelContent: NSView {
         }
         if selected == nil { selected=keys.first }
         seriesButton.isHidden = keys.count <= 1
-        seriesButton.toolTip = "切换额度周期；图表展示范围保持不变"
+        seriesButton.toolTip = nil
         seriesButton.setAccessibilityLabel("额度周期")
         chart.points=selected.map { store.visiblePoints(series:$0) } ?? []
-        message.stringValue=store.isSimulated ? "模拟数据" : store.error ?? (store.activeAccount == nil ? "等待可识别账户的有效读数" : "")
+        message.stringValue=store.isSimulated ? "模拟数据" : store.error ?? (store.activeAccount == nil ? HistoryResetLegend.text("等待额度数据", "Waiting for quota data") : "")
         needsLayout = true
         updateGeometry()
     }

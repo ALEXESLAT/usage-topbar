@@ -103,7 +103,7 @@ enum UpdatePolicy {
         guard let key = info["SUPublicEDKey"] as? String,
               let bytes = Data(base64Encoded: key), bytes.count == 32,
               bytes.contains(where: { $0 != 0 }) else {
-            return "此开发版尚未配置更新验证公钥。当前应用保持不变；请使用正式发布页的安装包。"
+            return "未配置更新验证公钥，请使用正式发布包。"
         }
         return nil
         #endif
@@ -114,10 +114,10 @@ enum UpdatePolicy {
     static func presentationProblem(version: String, displayVersion: String, download: URL?, notes: String?) -> String? {
         guard let download, permits(version: version, installed: "0", download: download),
               download.pathComponents.dropLast().last == "v" + displayVersion else {
-            return "未获取到一致的更新版本信息。当前应用保持不变，请稍后重试。"
+            return "未获取到有效版本信息，请重试。"
         }
         guard let notes, !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return "未获取到此版本的更新说明。当前应用保持不变，请稍后重试。"
+            return "未获取到更新说明，请重试。"
         }
         return nil
     }
@@ -358,7 +358,7 @@ final class SparkleUpdateEngine: NSObject, ManualUpdateEngine, SPUUpdaterDelegat
             if candidates.contains(where: { item in
                 item.hasInvalidMetadata(for: activeChannel, installedBuild: installedBuild)
             }) {
-                driver.unavailableReason = updateText("未获取到完整的已签名发布信息，无法确认更新。请稍后重试。", "Complete signed release metadata was not obtained. Unable to confirm updates; please retry later.")
+                driver.unavailableReason = updateText("未获取到有效发布信息，请重试。", "Valid release information was not obtained. Please retry.")
             }
             return SUAppcastItem.empty()
         }
@@ -373,7 +373,7 @@ final class SparkleUpdateEngine: NSObject, ManualUpdateEngine, SPUUpdaterDelegat
               candidate(item).eligible(for: channel,
                 installedBuild: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "",
                 installedVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") else {
-            throw rejected(updateText("更新通道、版本或发布元数据不符合要求，当前版本保持不变。", "Update channel, version or release metadata is invalid. The current version is unchanged."))
+            throw rejected(updateText("更新信息不符合当前通道或版本要求。", "The update does not match this channel or version."))
         }
     }
     func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: Error?) {

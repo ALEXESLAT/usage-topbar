@@ -1525,7 +1525,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var loginItemMenu: NSMenuItem?
     @MainActor private lazy var appUpdater: AppUpdateController = {
         guard let context = AcceptanceContext.current else { return .production() }
-        return AppUpdateController(problem: { updateText("离线验收：未获取在线更新，当前应用保持不变。", "Offline acceptance: online updates were not obtained. The current app is unchanged.") },
+        return AppUpdateController(problem: { updateText("离线验收不检查在线更新。", "Online updates are unavailable in offline acceptance.") },
             makeEngine: { preconditionFailure("Offline acceptance never creates an updater") },
             showError: { message in
                 let alert = NSAlert(); alert.messageText = updateText("离线验收", "Offline acceptance")
@@ -1666,16 +1666,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if !AppVariant.isTesting {
             let settings = NSMenu()
             settings.delegate = self
-            let version = settings.addItem(withTitle: updateText("当前版本：", "Current version: ") + AppVariant.versionLabel, action: nil, keyEquivalent: "")
+            let version = settings.addItem(withTitle: AppVariant.versionLabel, action: nil, keyEquivalent: "")
             version.isEnabled = false
             for channel in UpdateChannel.allCases {
                 let item = settings.addItem(withTitle: channel.title, action: #selector(selectUpdateChannel(_:)), keyEquivalent: "")
                 item.representedObject = channel.rawValue; item.target = self
+                if channel == .beta { item.toolTip = updateText("测试版可能不稳定", "Beta releases may be unstable") }
                 item.state = selectedUpdateChannel == channel ? .on : .off
             }
-            let warning = settings.addItem(withTitle: updateText("测试版可能不稳定", "Beta releases may be unstable"), action: nil, keyEquivalent: "")
-            warning.isEnabled = false
-            let parent = menu.addItem(withTitle: updateText("更新通道：", "Update channel: ") + selectedUpdateChannel.title, action: nil, keyEquivalent: "")
+            let parent = menu.addItem(withTitle: updateText("更新通道", "Update channel"), action: nil, keyEquivalent: "")
             parent.submenu = settings
             menu.addItem(withTitle: updateText("检查更新…", "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         }
@@ -1700,7 +1699,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateLoginItemMenu()
         for item in menu.items {
             if item.submenu?.items.contains(where: { $0.representedObject as? String == UpdateChannel.stable.rawValue }) == true {
-                item.title = updateText("更新通道：", "Update channel: ") + selectedUpdateChannel.title
+                item.title = updateText("更新通道", "Update channel")
             }
             if let raw = item.representedObject as? String, let channel = UpdateChannel(rawValue: raw) {
                 item.state = selectedUpdateChannel == channel ? .on : .off
