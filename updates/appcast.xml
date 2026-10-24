@@ -3,7 +3,26 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
 --><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
         <title>UsageTopbar</title>
-        <item><title>0.8.0</title><pubDate>Fri, 23 Oct 2026 05:38:45 +0000</pubDate><sparkle:version>56</sparkle:version><sparkle:shortVersionString>0.8.0</sparkle:shortVersionString><sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion><sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements><sparkle:releaseStatus>published</sparkle:releaseStatus><enclosure url="https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.8.0/UsageTopbar-0.8.0-macOS-arm64.zip" length="1577743" type="application/octet-stream" sparkle:edSignature="ksZC+fvjrgP0iscSNnEd/lPZONfKEpyiVudc6vSgsonJewZjCe3uhF/rU7NrjoFg4wRPUwE3Gc6e/S1qU2ISDA=="></enclosure><description sparkle:descriptionFormat="plain-text"># Usage Topbar 0.8.0（56）正式版
+        <item><title>0.8.1-beta.1</title><pubDate>Sat, 24 Oct 2026 17:48:11 +0000</pubDate><sparkle:version>57</sparkle:version><sparkle:shortVersionString>0.8.1-beta.1</sparkle:shortVersionString><sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion><sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements><sparkle:releaseStatus>prerelease</sparkle:releaseStatus><sparkle:channel>beta</sparkle:channel><enclosure url="https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.8.1-beta.1/UsageTopbar-0.8.1-beta.1-macOS-arm64.zip" length="1577270" type="application/octet-stream" sparkle:edSignature="8KvaWpJ0hp+4JiruDgtA4WOqnEmjuitMiDT6eoTJrV0AgYGOzYJ6G+DGQVkQeQNY7RakP4fuEzCMzp601HolAw=="></enclosure><description sparkle:descriptionFormat="plain-text"># UsageTopbar 0.8.1-beta.1（57）
+
+- 精简重置图例，只保留类别名，移除重复的图形描述与整图悬停说明。
+- 更新菜单不再重复显示当前通道，测试版提醒放在选项悬停提示中。
+- 缩短更新错误信息，保留失败原因、重试指引与无障碍信息。
+
+测试版可能不稳定。正式通道仍为0.8.0（56）。本次未改变重置判定、代理或更新安全机制。
+
+验证范围：本地图表、Release/Testing双配置离屏、更新器策略、通道选择、正式身份arm64构建与签名/包检查。公开下载与CI结果以发布验收记录为准。未执行真实前台通道点击、退出重开或下载安装全流程。沿用ad-hoc签名，未经过Apple公证；未替换本机安装。
+
+# UsageTopbar 0.8.1-beta.1 (57)
+
+- Simplify reset legend labels and remove repeated icon descriptions and chart-wide tooltips.
+- Remove the duplicate selected-channel label; keep the beta warning on the option tooltip.
+- Shorten update errors while retaining failure reasons, retry guidance and accessibility information.
+
+Beta releases may be unstable. Stable remains 0.8.0 (56). Reset classification, proxy handling and update security are unchanged.
+
+Validation covers local chart tests, Release/Testing offscreen UI, updater policy, channel selection, production-identity arm64 build and signature/package checks. Public-download and CI outcomes are recorded separately. Foreground channel clicks, actual quit/reopen and end-to-end download/install have not been tested. Ad-hoc signed without Apple notarization. The locally installed app was not replaced.
+</description></item><item><title>0.8.0</title><pubDate>Fri, 23 Oct 2026 05:38:45 +0000</pubDate><sparkle:version>56</sparkle:version><sparkle:shortVersionString>0.8.0</sparkle:shortVersionString><sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion><sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements><sparkle:releaseStatus>published</sparkle:releaseStatus><enclosure url="https://github.com/ALEXESLAT/usage-topbar/releases/download/v0.8.0/UsageTopbar-0.8.0-macOS-arm64.zip" length="1577743" type="application/octet-stream" sparkle:edSignature="ksZC+fvjrgP0iscSNnEd/lPZONfKEpyiVudc6vSgsonJewZjCe3uhF/rU7NrjoFg4wRPUwE3Gc6e/S1qU2ISDA=="></enclosure><description sparkle:descriptionFormat="plain-text"># Usage Topbar 0.8.0（56）正式版
 
 - 更新通道：默认正式版，可选择测试版并保持选择；使用语义版本和递增构建号防止降级。切换会取消旧候选，恢复下载也重新检查通道。继续使用原有签名、身份与包校验。
 - 重置判断：同账号额度恢复至100%、尚未到旧预定自然重置时间且完整卡证据一致时，可跨断档推断特殊重置。明确用卡优先；跨旧日期或证据缺失保持未知。未知的已观察恢复显示绿条和回转箭头，自然重置使用时钟回转，普通断网不标记重置。历史只派生重算，不覆盖原始记录。
@@ -68,6 +87,6 @@ The patched installer validates exact bundle identity and appcast/package build 
 0.7.3（build 55），Apple Silicon arm64，macOS 13+。沿用 ad-hoc 签名，未经过 Apple 公证。</description><sparkle:releaseStatus>published</sparkle:releaseStatus></item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: jj2ggPwjiH+StgEDi2MjTPNFPRVOO9PNL8Yc1mYHWZy5BPaQmf1TUr0B/xSya3IbMIplDqpSyFUxnMuryBYIDw==
-length: 9352
+edSignature: IC9m7wHZip2FqY7qnllPhBVPHCOxZ3kU1RnojdMgclSnI7AHl4n3UdUwMvslZeOQn7QfaDKOo1YlFCpkMZm/CA==
+length: 11778
 -->
